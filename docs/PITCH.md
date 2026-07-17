@@ -23,9 +23,12 @@
 
 ## 1:00–2:20 · Live demo (drive the UI, narrate the beats)
 
-1. **Sync Inbox** — "A professor asked me to submit my Phase 1 research report
-   by July 23, in this same thread. The extractor turned that email into a
-   tracked commitment — deadline, owner, expected outcome."
+1. **Live email** — teammate sends the professor's ask to the connected Gmail
+   on stage — "That's a real email arriving right now. Within seconds the
+   extractor turns it into a tracked commitment — deadline July 23, owner,
+   expected outcome: report in this same thread."
+   *(Wi-Fi dies? `curl -X POST localhost:8010/api/sync` loads the identical
+   demo email — rehearse both.)*
 2. **Approve** — "Deadline's six days out, so the planner doesn't write
    anything yet. Smallest useful action: block two writing sessions. I approve;
    they're on my calendar. Notice I never drive the loop — it ticks itself."

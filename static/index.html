@@ -200,10 +200,10 @@
 
   <div class="bar">
     <div class="ctl">
-      <span class="ctl-label">inbox source</span>
+      <span class="ctl-label">inbox</span>
       <div class="ctl-group">
-        <button onclick="post('/api/sync')">Load Demo Email</button>
         <button id="gmailSyncBtn" onclick="gmailSync()" hidden>Sync Gmail</button>
+        <span class="empty" id="srcHint">connect Gmail (top right) to start</span>
       </div>
     </div>
     <div class="ctl">
@@ -227,7 +227,7 @@
     <div>
       <div class="panel">
         <h2>Commitments <span>— what you promised, tracked to done</span></h2>
-        <div id="records" class="empty">nothing tracked yet — Load Demo Email, or connect Gmail (top right) and Sync.</div>
+        <div id="records" class="empty">nothing tracked yet — connect Gmail (top right); new commitments appear as mail arrives.</div>
       </div>
       <div class="panel" style="margin-top:16px">
         <h2>Audit Trail <span>— which agent did what, approved by whom</span></h2>
@@ -304,10 +304,13 @@ async function gmailSync() {
   setTimeout(() => { btn.textContent = 'Sync Gmail'; }, 4000);
   refresh();
 }
+let gmailOn = false;
 async function renderAccount() {
   const g = await (await fetch('/api/gmail')).json();
   const acct = document.getElementById('account');
+  gmailOn = g.configured;
   document.getElementById('gmailSyncBtn').hidden = !g.configured;
+  document.getElementById('srcHint').hidden = g.configured;
   if (g.configured) document.getElementById('gAddr').value = g.address;
   acct.innerHTML = g.configured
     ? `<span class="addr">${esc(g.address)}</span>
@@ -369,6 +372,8 @@ function toggleAuto(){
 renderAccount();
 refresh();
 setInterval(() => { auto ? post('/api/tick') : refresh(); }, 2500);
+// While connected, pull the real inbox every 30s — new mail becomes a card hands-free.
+setInterval(() => { if (gmailOn) fetch('/api/gmail/sync', {method:'POST'}).catch(() => {}); }, 30000);
 </script>
 </body>
 </html>

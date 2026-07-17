@@ -35,8 +35,10 @@ Credentials stay in `data/gmail.json` on your machine (gitignored).
 
 ## Demo script (~2 min)
 
-1. **Sync Inbox** → the extractor turns the professor's email into a commitment
+1. Connect Gmail (top right), have "the professor" send the ask — within 30s
+   (or on **Sync Gmail**) the extractor turns the real email into a commitment
    card: *submit Phase 1 report, deadline 2026-07-23, in the same thread*.
+   (Offline fallback: `curl -X POST localhost:8010/api/sync` loads the demo email.)
 2. The loop proposes *block 2 writing sessions* → **Approve** → calendar holds
    appear.
 3. Set the simulated date to **2026-07-22** → the loop switches to *draft the
