@@ -59,13 +59,14 @@
   .account { margin-left:auto; display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:12.5px; }
   .account .addr { color:var(--mint); }
   .account .addr::before { content:"● "; }
+  .acct-backdrop { position:fixed; inset:0; z-index:29; background:rgba(4,2,10,.72); backdrop-filter:blur(3px); }
   .acct-panel {
-    position:absolute; right:0; top:calc(100% + 10px); width:320px; z-index:30;
-    background:var(--panel); border:1px solid var(--neon); padding:16px;
-    box-shadow:0 0 24px rgba(255,45,149,.25);
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:min(380px, 92vw); z-index:30;
+    background:var(--panel); border:1px solid var(--neon); padding:22px;
+    box-shadow:0 0 40px rgba(255,45,149,.35);
     clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
   }
-  .acct-panel[hidden] { display:none; }
+  .acct-backdrop[hidden], .acct-panel[hidden] { display:none; }
   .acct-panel h3 { font-family:var(--mono); font-size:11.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--cyan); margin-bottom:6px; }
   .gstatus { font-family:var(--mono); font-size:12px; color:var(--dim); margin-top:8px; min-height:16px; }
   .hint { color:#6d5f96; font-size:11px; font-family:var(--mono); margin-top:10px; line-height:1.6; }
@@ -172,14 +173,17 @@
       <button class="small" id="acctBtn" onclick="toggleAcct()">Connect Gmail</button>
     </div>
 
+    <div class="acct-backdrop" id="acctBackdrop" hidden onclick="toggleAcct()"></div>
     <div class="acct-panel" id="acctPanel" hidden>
       <h3>Gmail login</h3>
-      <input type="email" id="gAddr" placeholder="you@gmail.com" autocomplete="off">
-      <input type="password" id="gPass" placeholder="app password (16 characters)" autocomplete="off">
-      <div style="display:flex; gap:8px; margin-top:10px">
-        <button class="small" onclick="gmailConnect()">Connect</button>
-        <button class="small ghost" onclick="toggleAcct()">Close</button>
-      </div>
+      <form id="gForm" onsubmit="gmailConnect(); return false;">
+        <input type="email" id="gAddr" name="username" placeholder="you@gmail.com" autocomplete="username">
+        <input type="password" id="gPass" name="password" placeholder="app password (16 characters)" autocomplete="current-password">
+        <div style="display:flex; gap:8px; margin-top:10px">
+          <button class="small" type="submit">Connect</button>
+          <button class="small ghost" type="button" onclick="toggleAcct()">Close</button>
+        </div>
+      </form>
       <div class="gstatus" id="gmailStatus"></div>
       <div class="hint">needs a Gmail <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">app password</a>
       (2-step verification first).<br>stored locally in <code>data/gmail.json</code> — never leaves this machine. read-only: LUCY never sends from your account.</div>
@@ -252,7 +256,9 @@ function setToday(v){ if(v) post('/api/today', {date:v}); }
 /* ── Gmail account (top right) ── */
 function toggleAcct(){
   const p = document.getElementById('acctPanel');
-  p.hidden = !p.hidden;
+  const b = document.getElementById('acctBackdrop');
+  p.hidden = b.hidden = !p.hidden;
+  if (!p.hidden) document.getElementById('gAddr').focus();
 }
 async function gmailConnect() {
   const address = document.getElementById('gAddr').value.trim();
@@ -284,6 +290,7 @@ async function renderAccount() {
   const g = await (await fetch('/api/gmail')).json();
   const acct = document.getElementById('account');
   document.getElementById('gmailSyncBtn').hidden = !g.configured;
+  if (g.configured) document.getElementById('gAddr').value = g.address;
   acct.innerHTML = g.configured
     ? `<span class="addr">${esc(g.address)}</span>
        <button class="small ghost" onclick="gmailDisconnect()">Disconnect</button>`
