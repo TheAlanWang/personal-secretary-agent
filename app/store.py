@@ -13,6 +13,7 @@ DEFAULT_STATE = {
     "inject_failure": True,      # demo trap: first send silently drops the attachment
     "next_id": 1,
     "records": [],
+    "scanned": {},               # message_id -> verdict; every email LUCY read, visible + never re-scanned
     "outbox": [],                # stands in for "sent email" (mock SMTP)
     "calendar": [],              # stands in for the user's calendar
 }

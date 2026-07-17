@@ -123,6 +123,7 @@
   .log div { border-bottom:1px solid #1e1836; padding:5px 0; color:var(--dim); }
   .a-extractor b {color:var(--cyan)} .a-planner b {color:var(--amber)} .a-executor b {color:var(--mint)}
   .a-verifier b {color:#ff8da0} .a-user b {color:#fff}
+  .v-card {color:var(--mint)} .v-thread {color:var(--cyan)} .v-skip {color:var(--faint)}
   ul { padding-left:18px; color:var(--dim); font-size:13.5px; }
   li { margin:4px 0; }
   .empty { color:var(--faint); font-size:13.5px; font-family:var(--mono); }
@@ -263,6 +264,11 @@
       <div class="panel" style="margin-top:18px">
         <h2>Outbox <span style="color:var(--faint)">// mock sent mail</span></h2>
         <div id="outbox" class="empty">empty</div>
+      </div>
+      <div class="panel" style="margin-top:18px">
+        <h2>Scanned mail</h2>
+        <div class="desc">Every email LUCY read, and what she decided — nothing is invisible.</div>
+        <div id="scanned" class="log empty">—</div>
       </div>
     </div>
   </div>
@@ -550,6 +556,15 @@ async function refresh() {
   document.getElementById('calendar').innerHTML = s.calendar.length
     ? s.calendar.map(c => `<li>${esc(c.slot)} — ${esc(c.title)}</li>`).join('')
     : '<li class="empty">empty</li>';
+
+  const sc = document.getElementById('scanned');
+  const scans = Object.values(s.scanned || {}).reverse();
+  sc.className = 'log' + (scans.length ? '' : ' empty');
+  sc.innerHTML = scans.length ? scans.map(e => {
+    const cls = e.verdict.startsWith('commitment') ? 'v-card'
+              : e.verdict.startsWith('thread') ? 'v-thread' : 'v-skip';
+    return `<div><span class="${cls}">[${esc(e.verdict)}]</span> ${esc(e.subject)}</div>`;
+  }).join('') : '—';
 
   const ob = document.getElementById('outbox');
   ob.className = s.outbox.length ? '' : 'empty';

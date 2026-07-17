@@ -49,11 +49,11 @@ def test_connection(cfg):
         return False, "connection failed: %s" % exc
 
 
-def fetch_recent(cfg, limit=25):
+def fetch_recent(cfg, limit=50):
     """Return the newest inbox messages in the normalized CPOS schema."""
     conn = _connect(cfg)
     try:
-        conn.select("INBOX", readonly=True)
+        _select_all_mail(conn)
         _, data = conn.uid("search", None, "ALL")
         uids = data[0].split()[-limit:]
         emails = []
@@ -79,6 +79,23 @@ def fetch_recent(cfg, limit=25):
             conn.logout()
         except Exception:
             pass
+
+
+def _select_all_mail(conn):
+    """Read '[Gmail]/All Mail' (inbox + archived, excludes Spam/Trash).
+    Folder name is localized per account, so fall back to the IMAP
+    special-use \\All flag, then to INBOX."""
+    if conn.select('"[Gmail]/All Mail"', readonly=True)[0] == "OK":
+        return
+    status, data = conn.list()
+    if status == "OK":
+        for line in data:
+            text = line.decode(errors="replace")
+            if "\\All" in text:
+                name = text.rsplit(' "/" ', 1)[-1].strip()
+                if conn.select(name, readonly=True)[0] == "OK":
+                    return
+    conn.select("INBOX", readonly=True)
 
 
 def _connect(cfg):

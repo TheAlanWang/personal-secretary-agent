@@ -19,16 +19,31 @@ def sync(state):
 
 
 def ingest_email(state, email, known_threads=None):
+    scanned = state.setdefault("scanned", {})
+    mid = email["message_id"]
+    if mid in scanned:
+        return 0  # already judged once — never re-send the same mail to the LLM
     if known_threads is None:
         known_threads = {r["source_thread"] for r in state["records"]}
     if email["thread_id"] in known_threads:
+        _record_scan(scanned, email, "thread already tracked")
         return 0
     record = extractor.extract(state, email)
     if record is None:
+        _record_scan(scanned, email, "no commitment — filtered out")
         return 0
     state["records"].append(record)
     known_threads.add(email["thread_id"])
+    _record_scan(scanned, email, "commitment → %s" % record["id"])
     return 1
+
+
+def _record_scan(scanned, email, verdict):
+    scanned[email["message_id"]] = {
+        "subject": email["subject"], "from": email["from"], "verdict": verdict,
+    }
+    while len(scanned) > 200:  # keep the feed bounded
+        scanned.pop(next(iter(scanned)))
 
 
 def tick(state):
