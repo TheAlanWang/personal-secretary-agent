@@ -124,11 +124,11 @@ def gmail_sync():
     cfg = gmail.load_config()
     if not cfg:
         raise HTTPException(status_code=400, detail="Gmail is not connected yet")
+    state = store.load_state()
     try:
-        emails = gmail.fetch_recent(cfg)
+        emails = gmail.fetch_new(cfg, set(state.get("scanned", {}).keys()))
     except Exception as exc:
         raise HTTPException(status_code=502, detail="Gmail fetch failed: %s" % exc)
-    state = store.load_state()
     created = sum(engine.ingest_email(state, e) for e in emails)
     store.save_state(state)
     return {"fetched": len(emails), "created": created}

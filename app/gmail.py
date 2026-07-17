@@ -49,15 +49,29 @@ def test_connection(cfg):
         return False, "connection failed: %s" % exc
 
 
-def fetch_recent(cfg, limit=50):
-    """Return the newest inbox messages in the normalized CPOS schema."""
+def fetch_new(cfg, known_message_ids, scan_cap=500, fetch_cap=100):
+    """Incremental full read: walk All Mail newest-first, download only messages
+    whose Message-ID we have never judged. Large mailboxes drain over a few
+    sync rounds (fetch_cap per round) — nothing is ever skipped for good."""
     conn = _connect(cfg)
     try:
         _select_all_mail(conn)
         _, data = conn.uid("search", None, "ALL")
-        uids = data[0].split()[-limit:]
+        uids = data[0].split()[-scan_cap:]
+        new_uids = []
+        for uid in reversed(uids):          # newest first
+            if len(new_uids) >= fetch_cap:
+                break
+            status, hdr = conn.uid("fetch", uid, "(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID)])")
+            if status != "OK" or not hdr or not isinstance(hdr[0], tuple):
+                continue
+            match = re.search(rb"<[^>]+>", hdr[0][1] or b"")
+            mid = match.group(0).decode(errors="replace") if match else "<uid-%s@gmail>" % uid.decode()
+            if mid not in known_message_ids:
+                new_uids.append(uid)
         emails = []
-        for uid in uids:
+        for uid in reversed(new_uids):      # deliver oldest-first
+
             status, msg_data = conn.uid("fetch", uid, "(X-GM-THRID RFC822)")
             if status != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
                 continue
