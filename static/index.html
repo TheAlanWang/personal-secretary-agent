@@ -124,6 +124,12 @@
   .a-extractor b {color:var(--cyan)} .a-planner b {color:var(--amber)} .a-executor b {color:var(--mint)}
   .a-verifier b {color:#ff8da0} .a-user b {color:#fff}
   .v-card {color:var(--mint)} .v-thread {color:var(--cyan)} .v-skip {color:var(--faint)}
+  .mailrow { display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+             border-bottom:1px solid #1e1836; padding:8px 0; }
+  .mailrow .m-sub { font-size:14px; }
+  .mailrow .m-from { color:var(--faint); font-family:var(--mono); font-size:11.5px; }
+  .mailrow .m-tag { flex:none; }
+  .mailrow.dimmed .m-sub { color:var(--dim); }
   ul { padding-left:18px; color:var(--dim); font-size:13.5px; }
   li { margin:4px 0; }
   .empty { color:var(--faint); font-size:13.5px; font-family:var(--mono); }
@@ -246,9 +252,14 @@
   <div id="view-loops" class="grid">
     <div>
       <div class="panel">
-        <h2>Commitments</h2>
-        <div class="desc">What you promised, tracked until it's verifiably done. LUCY reads every email and keeps only real commitments.</div>
-        <div id="records" class="empty">nothing tracked yet — connect Gmail; commitments appear as mail arrives</div>
+        <h2>Mailbox <span style="color:var(--faint)">— every message, nothing hidden</span></h2>
+        <div class="desc">All mail LUCY has read. Rows with a colored tag carry a task; the rest were judged and set aside.</div>
+        <div id="mailbox" class="empty">no mail scanned yet — connect Gmail (top right)</div>
+      </div>
+      <div class="panel" style="margin-top:18px">
+        <h2>Tasks in the loop</h2>
+        <div class="desc">The commitments extracted from your mail, tracked until verifiably done.</div>
+        <div id="records" class="empty">no tasks yet — they appear when scanned mail contains a real commitment</div>
       </div>
       <div class="panel" style="margin-top:18px">
         <h2>Audit trail</h2>
@@ -264,11 +275,6 @@
       <div class="panel" style="margin-top:18px">
         <h2>Outbox <span style="color:var(--faint)">// mock sent mail</span></h2>
         <div id="outbox" class="empty">empty</div>
-      </div>
-      <div class="panel" style="margin-top:18px">
-        <h2>Scanned mail</h2>
-        <div class="desc">Every email LUCY read, and what she decided — nothing is invisible.</div>
-        <div id="scanned" class="log empty">—</div>
       </div>
     </div>
   </div>
@@ -557,14 +563,26 @@ async function refresh() {
     ? s.calendar.map(c => `<li>${esc(c.slot)} — ${esc(c.title)}</li>`).join('')
     : '<li class="empty">empty</li>';
 
-  const sc = document.getElementById('scanned');
+  const byId = Object.fromEntries(s.records.map(r => [r.id, r]));
+  const mb = document.getElementById('mailbox');
   const scans = Object.values(s.scanned || {}).reverse();
-  sc.className = 'log' + (scans.length ? '' : ' empty');
-  sc.innerHTML = scans.length ? scans.map(e => {
-    const cls = e.verdict.startsWith('commitment') ? 'v-card'
-              : e.verdict.startsWith('thread') ? 'v-thread' : 'v-skip';
-    return `<div><span class="${cls}">[${esc(e.verdict)}]</span> ${esc(e.subject)}</div>`;
-  }).join('') : '—';
+  mb.className = scans.length ? '' : 'empty';
+  mb.innerHTML = scans.length ? scans.map(e => {
+    let tag, dim = '';
+    const m = e.verdict.match(/commitment → (\S+)/);
+    if (m && byId[m[1]]) {
+      const r = byId[m[1]];
+      tag = `<span class="chip ${r.status}">task · ${r.status.replace('_',' ')}</span>`;
+    } else if (e.verdict.startsWith('thread')) {
+      tag = `<span class="chip verifying">in tracked thread</span>`;
+    } else {
+      tag = `<span class="chip open">no task</span>`; dim = ' dimmed';
+    }
+    return `<div class="mailrow${dim}">
+      <span><span class="m-sub">${esc(e.subject)}</span><br><span class="m-from">${esc(e.from)}${e.date ? ' · ' + esc(String(e.date).slice(0, 22)) : ''}</span></span>
+      <span class="m-tag">${tag}</span>
+    </div>`;
+  }).join('') : 'no mail scanned yet — connect Gmail (top right)';
 
   const ob = document.getElementById('outbox');
   ob.className = s.outbox.length ? '' : 'empty';

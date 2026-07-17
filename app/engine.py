@@ -40,7 +40,8 @@ def ingest_email(state, email, known_threads=None):
 
 def _record_scan(scanned, email, verdict):
     scanned[email["message_id"]] = {
-        "subject": email["subject"], "from": email["from"], "verdict": verdict,
+        "subject": email["subject"], "from": email["from"],
+        "date": email.get("date", ""), "verdict": verdict,
     }
     while len(scanned) > 200:  # keep the feed bounded
         scanned.pop(next(iter(scanned)))
