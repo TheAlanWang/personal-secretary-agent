@@ -124,11 +124,15 @@
   .a-extractor b {color:var(--cyan)} .a-planner b {color:var(--amber)} .a-executor b {color:var(--mint)}
   .a-verifier b {color:#ff8da0} .a-user b {color:#fff}
   .v-card {color:var(--mint)} .v-thread {color:var(--cyan)} .v-skip {color:var(--faint)}
-  .mailrow { display:flex; justify-content:space-between; align-items:baseline; gap:12px;
-             border-bottom:1px solid #1e1836; padding:8px 0; }
-  .mailrow .m-sub { font-size:14px; }
-  .mailrow .m-from { color:var(--faint); font-family:var(--mono); font-size:11.5px; }
+  #mailbox { max-height:340px; overflow-y:auto; }
+  .mailrow { display:flex; align-items:center; gap:10px;
+             border-bottom:1px solid #1e1836; padding:4px 0; }
+  .mailrow .m-sub { font-size:13px; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mailrow .m-from { color:var(--faint); font-family:var(--mono); font-size:10.5px; flex:none; max-width:150px;
+                     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mailrow .m-date { color:var(--faint); font-family:var(--mono); font-size:10.5px; flex:none; width:78px; text-align:right; }
   .mailrow .m-tag { flex:none; }
+  .mailrow .m-tag .chip { font-size:9.5px; padding:2px 8px; }
   .mailrow.dimmed .m-sub { color:var(--dim); }
   ul { padding-left:18px; color:var(--dim); font-size:13.5px; }
   li { margin:4px 0; }
@@ -565,7 +569,9 @@ async function refresh() {
 
   const byId = Object.fromEntries(s.records.map(r => [r.id, r]));
   const mb = document.getElementById('mailbox');
-  const scans = Object.values(s.scanned || {}).reverse();
+  const scans = Object.values(s.scanned || {})
+    .map(e => ({...e, ts: Date.parse(e.date || '') || 0}))
+    .sort((a, b) => b.ts - a.ts);           // newest first; undated sink to the bottom
   mb.className = scans.length ? '' : 'empty';
   mb.innerHTML = scans.length ? scans.map(e => {
     let tag, dim = '';
@@ -574,12 +580,15 @@ async function refresh() {
       const r = byId[m[1]];
       tag = `<span class="chip ${r.status}">task · ${r.status.replace('_',' ')}</span>`;
     } else if (e.verdict.startsWith('thread')) {
-      tag = `<span class="chip verifying">in tracked thread</span>`;
+      tag = `<span class="chip verifying">tracked thread</span>`;
     } else {
       tag = `<span class="chip open">no task</span>`; dim = ' dimmed';
     }
+    const day = e.ts ? new Date(e.ts).toISOString().slice(5, 16).replace('T', ' ') : '';
     return `<div class="mailrow${dim}">
-      <span><span class="m-sub">${esc(e.subject)}</span><br><span class="m-from">${esc(e.from)}${e.date ? ' · ' + esc(String(e.date).slice(0, 22)) : ''}</span></span>
+      <span class="m-sub" title="${esc(e.subject)}">${esc(e.subject)}</span>
+      <span class="m-from">${esc(e.from)}</span>
+      <span class="m-date">${day}</span>
       <span class="m-tag">${tag}</span>
     </div>`;
   }).join('') : 'no mail scanned yet — connect Gmail (top right)';
