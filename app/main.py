@@ -4,6 +4,7 @@ Run:  uvicorn app.main:app --reload
 Open: http://localhost:8000
 """
 import os
+import threading
 
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
@@ -119,16 +120,24 @@ def gmail_disconnect():
     return {"ok": True}
 
 
+_sync_lock = threading.Lock()  # a slow LLM scan must not stack up behind the 10s auto-sync
+
+
 @app.post("/api/gmail/sync")
 def gmail_sync():
     cfg = gmail.load_config()
     if not cfg:
         raise HTTPException(status_code=400, detail="Gmail is not connected yet")
-    state = store.load_state()
+    if not _sync_lock.acquire(blocking=False):
+        return {"fetched": 0, "created": 0, "busy": True}
     try:
-        emails = gmail.fetch_new(cfg, set(state.get("scanned", {}).keys()))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail="Gmail fetch failed: %s" % exc)
-    created = sum(engine.ingest_email(state, e) for e in emails)
-    store.save_state(state)
-    return {"fetched": len(emails), "created": created}
+        state = store.load_state()
+        try:
+            emails = gmail.fetch_new(cfg, set(state.get("scanned", {}).keys()))
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail="Gmail fetch failed: %s" % exc)
+        created = sum(engine.ingest_email(state, e) for e in emails)
+        store.save_state(state)
+        return {"fetched": len(emails), "created": created}
+    finally:
+        _sync_lock.release()
