@@ -41,4 +41,7 @@ def new_record(rec_id, email, promise, deadline, expected_outcome):
 
 
 def log(record, agent, message):
-    record["history"].append({"agent": agent, "message": message})
+    entry = {"agent": agent, "message": message}
+    if record["history"] and record["history"][-1] == entry:
+        return  # the auto-loop ticks repeatedly; don't spam identical lines
+    record["history"].append(entry)

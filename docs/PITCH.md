@@ -1,4 +1,4 @@
-# CPOS Loop — 3-Minute Pitch Script
+# LUCY — 3-Minute Pitch Script
 
 ## 0:00–0:30 · The problem
 
@@ -12,29 +12,30 @@
 
 ## 0:30–1:00 · The idea
 
-> CPOS Loop is a **local-first personal secretary** that tracks four things for
+> LUCY is a **local-first personal secretary** that tracks four things for
 > every commitment hiding in your inbox: the **C**ommitment, the **P**erson who
-> owns it, the expected **O**utcome, and the **S**chedule.
+> owns it, the expected **O**utcome, and the **S**chedule — the CPOS loop.
 >
-> Four agents run a loop: an **Extractor** finds the promise, a **Planner**
-> picks the smallest useful action, an **Executor** acts — only after *you*
-> approve — and a **Verifier** checks what *actually happened*. Wrong outcome?
-> The loop reopens. That's the name.
+> Four agents run that loop: an **Extractor** finds the promise, a **Planner**
+> picks the smallest useful action, an **Executor** acts — new intents need
+> *your* approval — and a **Verifier** checks what *actually happened*. Wrong
+> outcome? The loop repairs it itself, under the approval you already gave.
 
 ## 1:00–2:20 · Live demo (drive the UI, narrate the beats)
 
 1. **Sync Inbox** — "A professor asked me to submit my Phase 1 research report
    by July 23, in this same thread. The extractor turned that email into a
    tracked commitment — deadline, owner, expected outcome."
-2. **Tick → Approve** — "Deadline's six days out, so the planner doesn't write
+2. **Approve** — "Deadline's six days out, so the planner doesn't write
    anything yet. Smallest useful action: block two writing sessions. I approve;
-   they're on my calendar."
-3. **Fast-forward to July 22, Tick → Approve** — "Now it drafts the submission
+   they're on my calendar. Notice I never drive the loop — it ticks itself."
+3. **Fast-forward to July 22 → Approve** — "Now it drafts the submission
    reply — same thread, report attached. I approve. Sent."
-4. **Tick — THE MOMENT** *(card pulses red)* — "But look: the verifier checked
-   the sent mail and the attachment is **missing**. Any other assistant would
-   have called this done. CPOS reopens the loop, re-plans a resend *with* the
-   attachment, I approve — *(Tick)* — verified, loop closed."
+4. **THE MOMENT — hands off the keyboard** *(card pulses red)* — "But look:
+   the verifier checked the sent mail and the attachment is **missing**. Any
+   other assistant would have called this done. Watch — LUCY reopens the loop,
+   resends *with* the attachment under the approval I already gave, verifies —
+   loop closed. I didn't touch anything."
 5. Point at the audit trail — "Every line: which agent, what action, approved
    by whom."
 
@@ -53,16 +54,20 @@
 
 ## 2:50–3:00 · Close
 
-> Assistants that write are everywhere. **CPOS Loop is the one that makes sure
-> it got done.** Thank you.
+> Assistants that write are everywhere. **LUCY is the one that makes sure it
+> got done.** Thank you.
 
 ---
 
 ## Judge Q&A cheat sheet
 
-- **"What if the LLM hallucinates a commitment?"** — Nothing happens without
-  human approval; a bad extraction dies at the Approve button, and the record
-  shows exactly which agent proposed it.
+- **"What if the LLM hallucinates a commitment?"** — No *new* intent executes
+  without human approval; a bad extraction dies at the Approve button, and the
+  record shows exactly which agent proposed it.
+- **"If humans approve everything, where's the loop?"** — Approval is per
+  *intent*, not per attempt: you approve "submit the report in that thread"
+  once, and the machine owns the retries until reality matches it. Humans gate
+  intents; the loop owns attempts.
 - **"Why local-first?"** — Email is the most sensitive dataset most people
   own. State lives in one JSON file on your machine; only minimal, stateless
   prompts go to the Akash worker.

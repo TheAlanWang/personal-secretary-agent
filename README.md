@@ -1,11 +1,17 @@
-# CPOS Loop — Personal Secretary Agent
+# LUCY — Personal Secretary Agent
 
-> Other email assistants write your replies. **CPOS Loop closes your loops**: it
+> Other email assistants write your replies. **LUCY closes your loops**: she
 > finds the commitments hidden in your email, tracks who owes what by when,
 > takes the smallest useful action (with your approval), and **verifies the
-> outcome actually happened** — retrying when it didn't.
+> outcome actually happened** — repairing it herself when it didn't.
 
-**C**ommitment · **P**erson · **O**utcome · **S**chedule — see [PRD.md](PRD.md).
+LUCY runs the **CPOS loop**: **C**ommitment · **P**erson · **O**utcome ·
+**S**chedule — see [PRD.md](PRD.md).
+
+**You approve intent, the loop handles attempts**: each new action needs your
+one-time approval; failed outcomes are repaired automatically under that same
+approval, and the loop advances itself (Auto Loop is on by default — use
+*Tick Once* to narrate step by step).
 
 ## Quick start
 
@@ -22,17 +28,23 @@ inbox/outbox/calendar in `data/`. End-to-end check without the browser:
 python3 smoke.py
 ```
 
+**Real Gmail (optional):** use the *Gmail // connection* panel in the UI —
+enable 2-Step Verification, create an [App Password](https://myaccount.google.com/apppasswords),
+connect, then *Sync Gmail* pulls your latest inbox through the same extractor.
+Credentials stay in `data/gmail.json` on your machine (gitignored).
+
 ## Demo script (~2 min)
 
 1. **Sync Inbox** → the extractor turns the professor's email into a commitment
    card: *submit Phase 1 report, deadline 2026-07-23, in the same thread*.
-2. **Tick** → planner proposes *block 2 writing sessions* → **Approve** →
-   calendar holds appear.
-3. Set the simulated date to **2026-07-22** → **Tick** → planner switches to
-   *draft the submission reply with the report attached* → **Approve** → sent.
-4. **The Loop 🔁**: **Tick** → the verifier discovers the attachment is missing
-   → card turns red (`retry`) → **Tick** → planner re-plans *resend WITH
-   attachment* → **Approve** → **Tick** → verified, card turns green (`closed`).
+2. The loop proposes *block 2 writing sessions* → **Approve** → calendar holds
+   appear.
+3. Set the simulated date to **2026-07-22** → the loop switches to *draft the
+   submission reply with the report attached* → **Approve** → sent.
+4. **The Loop 🔁 (hands off the keyboard)**: the verifier discovers the
+   attachment is missing → card pulses red (`retry`) → the repair inherits your
+   original approval, resends WITH the attachment, verifies — card turns green
+   (`closed`) with no further clicks.
 5. The audit trail shows exactly which agent did what, approved by whom.
 
 ## The four agents (`app/agents/`)

@@ -35,14 +35,22 @@ def tick(state):
     """Advance every commitment one step through the loop."""
     for record in state["records"]:
         if record["status"] in PLANNABLE:
+            was_retry = record["status"] == models.STATUS_RETRY
             action = planner.choose_next_action(record, state["today"])
             if action is None:
                 models.log(record, "planner",
                            "Nothing useful to do yet (time blocked, deadline not close) — waiting")
                 continue
             record["pending_action"] = action
-            record["status"] = models.STATUS_AWAITING_APPROVAL
             models.log(record, "planner", "Proposed action: %s" % action["label"])
+            if was_retry:
+                # Repairing an outcome the user already approved: the approval
+                # covers the intent, so the loop closes itself hands-off.
+                models.log(record, "executor",
+                           "Auto-executing repair — inherits the user's original approval")
+                executor.execute(state, record)
+            else:
+                record["status"] = models.STATUS_AWAITING_APPROVAL
         elif record["status"] == models.STATUS_VERIFYING:
             verifier.verify(state, record)
 

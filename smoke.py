@@ -44,14 +44,13 @@ def main():
     assert rec["status"] == "retry", "THE LOOP: missing attachment must reopen the plan"
 
     engine.tick(state)
-    rec = step(state, "7. tick -> planner replans resend")
-    assert rec["pending_action"]["force_attachment"]
-
-    engine.approve(state, rec["id"])
-    engine.tick(state)
-    rec = step(state, "8. approve + tick -> verified")
-    assert rec["status"] == "closed"
+    rec = step(state, "7. tick -> repair auto-executed (no re-approval)")
+    assert rec["status"] == "verifying"
     assert state["outbox"][-1]["attachments"], "resend must carry the attachment"
+
+    engine.tick(state)
+    rec = step(state, "8. tick -> verified, loop closed")
+    assert rec["status"] == "closed"
 
     store.save_state(state)
     print("\nSMOKE PASS — full CPOS loop including one retry. Audit trail:")

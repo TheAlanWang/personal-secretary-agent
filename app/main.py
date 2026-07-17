@@ -5,11 +5,11 @@ Open: http://localhost:8000
 """
 import os
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from . import engine, store
+from . import engine, gmail, store
 
 app = FastAPI(title="CPOS Loop")
 
@@ -18,6 +18,11 @@ STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file
 
 class TodayBody(BaseModel):
     date: str
+
+
+class GmailBody(BaseModel):
+    address: str
+    app_password: str
 
 
 @app.get("/")
@@ -39,16 +44,23 @@ def sync():
 
 
 @app.post("/api/ingest")
-def ingest(email: dict, x_ingest_token: str = Header(default="")):
+def ingest(email: dict, request: Request, x_ingest_token: str = Header(default="")):
     """Webhook destination for the Nexla flow (integrations/nexla/README.md):
     receives one normalized email and runs the extractor on it.
 
-    When exposed beyond localhost, set INGEST_TOKEN and configure the same
-    secret on the Nexla destination (in production Pomerium fronts this route).
+    Fail-closed: without INGEST_TOKEN configured, only loopback clients are
+    accepted; any exposure beyond localhost requires the shared secret (and in
+    production Pomerium fronts this route).
     """
     expected = os.environ.get("INGEST_TOKEN")
-    if expected and x_ingest_token != expected:
-        raise HTTPException(status_code=401, detail="invalid ingest token")
+    if expected:
+        if x_ingest_token != expected:
+            raise HTTPException(status_code=401, detail="invalid ingest token")
+    else:
+        client = request.client.host if request.client else ""
+        if client not in ("127.0.0.1", "::1", "testclient"):
+            raise HTTPException(status_code=503,
+                                detail="set INGEST_TOKEN before exposing /api/ingest")
     required = {"message_id", "thread_id", "from", "to", "subject", "body"}
     missing = required - email.keys()
     if missing:
@@ -95,3 +107,40 @@ def set_today(body: TodayBody):
 def reset():
     store.reset_state()
     return {"ok": True}
+
+
+@app.get("/api/gmail")
+def gmail_status():
+    cfg = gmail.load_config()
+    return {"configured": bool(cfg), "address": cfg["address"] if cfg else None}
+
+
+@app.post("/api/gmail")
+def gmail_configure(body: GmailBody):
+    """Validate the credentials against imap.gmail.com before saving locally."""
+    ok, message = gmail.test_connection(
+        {"address": body.address, "app_password": body.app_password})
+    if ok:
+        gmail.save_config(body.address, body.app_password)
+    return {"ok": ok, "message": message}
+
+
+@app.delete("/api/gmail")
+def gmail_disconnect():
+    gmail.delete_config()
+    return {"ok": True}
+
+
+@app.post("/api/gmail/sync")
+def gmail_sync():
+    cfg = gmail.load_config()
+    if not cfg:
+        raise HTTPException(status_code=400, detail="Gmail is not connected yet")
+    try:
+        emails = gmail.fetch_recent(cfg)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Gmail fetch failed: %s" % exc)
+    state = store.load_state()
+    created = sum(engine.ingest_email(state, e) for e in emails)
+    store.save_state(state)
+    return {"fetched": len(emails), "created": created}
