@@ -5,3 +5,4 @@ data/state.json
 data/gmail.json
 data/llm.json
 .playwright-mcp/
+data/ingest_token.txt
