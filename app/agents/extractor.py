@@ -6,7 +6,7 @@ filters out newsletters/receipts/notifications. If the LLM is unreachable it
 falls back to rule-based extraction so the demo runs with zero keys.
 """
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from .. import llm, models
 
@@ -23,11 +23,14 @@ SYSTEM_PROMPT = (
     "language. Respond with ONLY this JSON, no prose:\n"
     '{"commitment": true|false, "promise": "...", "deadline": "YYYY-MM-DD", '
     '"expected_outcome": "..."}\n'
-    "Rules: newsletters, receipts, verification codes, promotions, and pure FYI "
-    "notifications are NOT commitments (commitment=false). Resolve relative dates "
-    "(\"next Thursday\", \"明天\", \"下周五\") to ISO dates using the reference dates "
-    "provided. Write promise and expected_outcome in the email's own language. "
-    "If there is no identifiable deadline, set commitment=false."
+    "Rules: newsletters, receipts, verification codes, promotions, security alerts, "
+    "social notifications, and pure FYI notifications are NOT commitments "
+    "(commitment=false). But a genuine task or request addressed to the recipient "
+    "COUNTS even without an explicit date — e.g. 'please review', 'let me know what "
+    "you think', an invitation that needs an RSVP: set commitment=true and deadline "
+    "to null. Resolve relative dates (\"next Thursday\", \"明天\", \"下周五\") to ISO "
+    "dates using the reference dates provided. Write promise and expected_outcome in "
+    "the email's own language."
 )
 
 
@@ -38,14 +41,20 @@ def extract(state, email):
         email["subject"], email["body"][:4000]))
     result = llm.complete_json(SYSTEM_PROMPT, prompt)
 
+    assumed_deadline = False
     if result is None:                       # LLM unreachable -> offline rules
         result = _rule_based(email["body"])
         brain = "rules"
     else:
         brain = "akash-llm"
-        if not (result.get("commitment") and result.get("promise")
-                and _valid_date(result.get("deadline"))):
+        if not (result.get("commitment") and result.get("promise")):
             return None                      # the AI filtered this email out
+        if not _valid_date(result.get("deadline")):
+            # Real task without an explicit date: track it with a soft deadline
+            # rather than dropping it on the floor.
+            result["deadline"] = (date.fromisoformat(state["today"])
+                                  + timedelta(days=3)).isoformat()
+            assumed_deadline = True
     if result is None:
         return None
 
@@ -59,8 +68,9 @@ def extract(state, email):
     )
     state["next_id"] += 1
     models.log(record, "extractor",
-               "Commitment found (%s) in '%s': %s (deadline %s)"
-               % (brain, email["subject"], record["promise"], record["deadline"]))
+               "Commitment found (%s) in '%s': %s (deadline %s%s)"
+               % (brain, email["subject"], record["promise"], record["deadline"],
+                  ", assumed — no explicit date in the email" if assumed_deadline else ""))
     return record
 
 
