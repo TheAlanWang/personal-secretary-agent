@@ -34,30 +34,32 @@ SYSTEM_PROMPT = (
 )
 
 
-def extract(state, email):
-    """Return a new CommitmentRecord for this email, or None if no commitment."""
+def judge(today, email):
+    """Pure judgment (no state mutation) so batches can run in parallel.
+    Returns {"data", "brain", "assumed"} or None when the email carries no task."""
     prompt = ("Today: %s\nEmail date: %s\nFrom: %s\nSubject: %s\n\n%s" % (
-        state.get("today"), email.get("date", "?"), email["from"],
+        today, email.get("date", "?"), email["from"],
         email["subject"], email["body"][:4000]))
     result = llm.complete_json(SYSTEM_PROMPT, prompt)
 
-    assumed_deadline = False
     if result is None:                       # LLM unreachable -> offline rules
         result = _rule_based(email["body"])
-        brain = "rules"
-    else:
-        brain = "akash-llm"
-        if not (result.get("commitment") and result.get("promise")):
-            return None                      # the AI filtered this email out
-        if not _valid_date(result.get("deadline")):
-            # Real task without an explicit date: track it with a soft deadline
-            # rather than dropping it on the floor.
-            result["deadline"] = (date.fromisoformat(state["today"])
-                                  + timedelta(days=3)).isoformat()
-            assumed_deadline = True
-    if result is None:
-        return None
+        return {"data": result, "brain": "rules", "assumed": False} if result else None
 
+    if not (result.get("commitment") and result.get("promise")):
+        return None                          # the AI filtered this email out
+    assumed = False
+    if not _valid_date(result.get("deadline")):
+        # Real task without an explicit date: track it with a soft deadline
+        # rather than dropping it on the floor.
+        result["deadline"] = (date.fromisoformat(today) + timedelta(days=3)).isoformat()
+        assumed = True
+    return {"data": result, "brain": "akash-llm", "assumed": assumed}
+
+
+def build_record(state, email, judgment):
+    """Materialize a CommitmentRecord from a judgment (serial: mutates next_id)."""
+    result = judgment["data"]
     record = models.new_record(
         rec_id="cpos-%03d" % state["next_id"],
         email=email,
@@ -69,9 +71,18 @@ def extract(state, email):
     state["next_id"] += 1
     models.log(record, "extractor",
                "Commitment found (%s) in '%s': %s (deadline %s%s)"
-               % (brain, email["subject"], record["promise"], record["deadline"],
-                  ", assumed — no explicit date in the email" if assumed_deadline else ""))
+               % (judgment["brain"], email["subject"], record["promise"],
+                  record["deadline"],
+                  ", assumed — no explicit date in the email" if judgment["assumed"] else ""))
     return record
+
+
+def extract(state, email):
+    """Return a new CommitmentRecord for this email, or None if no commitment."""
+    judgment = judge(state.get("today"), email)
+    if judgment is None:
+        return None
+    return build_record(state, email, judgment)
 
 
 def _valid_date(value):

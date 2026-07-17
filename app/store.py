@@ -14,6 +14,7 @@ DEFAULT_STATE = {
     "next_id": 1,
     "records": [],
     "scanned": {},               # message_id -> verdict; every email LUCY read, visible + never re-scanned
+    "judgments": {},             # message_id -> raw LLM judgment; survives reset so rebuilds cost zero LLM calls
     "outbox": [],                # stands in for "sent email" (mock SMTP)
     "calendar": [],              # stands in for the user's calendar
 }
@@ -36,8 +37,15 @@ def save_state(state):
 
 
 def reset_state():
+    old = load_state() if os.path.exists(STATE_PATH) else None
     state = json.loads(json.dumps(DEFAULT_STATE))
     state["today"] = date.today().isoformat()
+    if old:
+        # Reset restarts the demo loop, not LUCY's judgment: junk verdicts and
+        # all cached LLM judgments survive, so the rebuild costs zero LLM calls.
+        state["scanned"] = {mid: e for mid, e in old.get("scanned", {}).items()
+                            if e["verdict"].startswith("no commitment")}
+        state["judgments"] = old.get("judgments", {})
     save_state(state)
     return state
 

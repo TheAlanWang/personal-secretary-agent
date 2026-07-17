@@ -10,7 +10,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from . import engine, gmail, store
+from . import engine, gmail, nexla, store
 
 app = FastAPI(title="CPOS Loop")
 
@@ -136,8 +136,18 @@ def gmail_sync():
             emails = gmail.fetch_new(cfg, set(state.get("scanned", {}).keys()))
         except Exception as exc:
             raise HTTPException(status_code=502, detail="Gmail fetch failed: %s" % exc)
-        created = sum(engine.ingest_email(state, e) for e in emails)
+        # Data pipeline: route raw records through Nexla (normalize → sink →
+        # /api/ingest). Mirror mode also ingests locally; message-id dedupe
+        # makes the double path harmless. NEXLA_PRIMARY=1 trusts Nexla alone.
+        routed = nexla.push_records(emails) if emails else False
+        if routed and nexla.primary():
+            store.save_state(state)
+            return {"fetched": len(emails), "created": 0, "routed": "nexla"}
+        created = engine.ingest_batch(state, emails)
         store.save_state(state)
-        return {"fetched": len(emails), "created": created}
+        result = {"fetched": len(emails), "created": created}
+        if routed:
+            result["routed"] = "nexla+local"
+        return result
     finally:
         _sync_lock.release()

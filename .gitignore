@@ -6,3 +6,7 @@ data/gmail.json
 data/llm.json
 .playwright-mcp/
 data/ingest_token.txt
+data/nexla_token.txt
+.env
+data/nexla_token.txt
+data/nexla_push.json
