@@ -262,7 +262,8 @@ function toggleAcct(){
 }
 async function gmailConnect() {
   const address = document.getElementById('gAddr').value.trim();
-  const app_password = document.getElementById('gPass').value.trim();
+  // Google displays app passwords with spaces ("abcd efgh ijkl mnop") — strip them all.
+  const app_password = document.getElementById('gPass').value.replace(/\s+/g, '');
   const st = document.getElementById('gmailStatus');
   if (!address || !app_password) { st.textContent = 'enter address and app password first'; return; }
   st.textContent = 'connecting to imap.gmail.com…';

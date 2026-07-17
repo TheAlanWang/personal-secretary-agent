@@ -83,7 +83,8 @@ def fetch_recent(cfg, limit=10):
 
 def _connect(cfg):
     conn = imaplib.IMAP4_SSL(IMAP_HOST, 993, timeout=15)
-    conn.login(cfg["address"], cfg["app_password"])
+    # App passwords are shown by Google with spaces; accept either form.
+    conn.login(cfg["address"], cfg["app_password"].replace(" ", ""))
     return conn
 
 
