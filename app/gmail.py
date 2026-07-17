@@ -49,7 +49,7 @@ def test_connection(cfg):
         return False, "connection failed: %s" % exc
 
 
-def fetch_recent(cfg, limit=10):
+def fetch_recent(cfg, limit=25):
     """Return the newest inbox messages in the normalized CPOS schema."""
     conn = _connect(cfg)
     try:

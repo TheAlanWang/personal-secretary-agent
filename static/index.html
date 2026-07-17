@@ -5,260 +5,236 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LUCY — Personal Secretary</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🔁</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:#08060f; --panel:#120c20; --panel-2:#0d0918; --line:#2b2140;
-    --neon:#ff2d95;          /* lucy magenta — primary */
-    --cyan:#35e0ff;          /* HUD data */
-    --mint:#45ffc4;          /* verified / success */
-    --amber:#ffb347;         /* awaiting human approval */
-    --red:#ff3b4b;           /* broken outcome */
-    --text:#ece8f5; --dim:#8d84a8;
-    --mono:'Share Tech Mono', ui-monospace, monospace;
-    --disp:'Chakra Petch', -apple-system, sans-serif;
+    --bg:#f5f6f8; --card:#ffffff; --line:#e2e5ea; --text:#1d2433; --dim:#68718a;
+    --accent:#4f46e5;
+    --amber-t:#92510a; --amber-b:#fdf0d5;   /* needs your approval */
+    --blue-t:#1e50c0;  --blue-b:#e3ecfd;    /* verifying */
+    --red-t:#b42331;   --red-b:#fde5e7;     /* retry / broken outcome */
+    --green-t:#0b7a55; --green-b:#dcf5ea;   /* closed */
+    --gray-t:#68718a;  --gray-b:#eef0f3;
   }
   * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--text); padding:28px 24px 40px;
+         max-width:1240px; margin:0 auto;
+         font:15px/1.55 -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
 
-  body {
-    background:var(--bg); color:var(--text);
-    font:15px/1.5 var(--disp);
-    padding:26px; max-width:1280px; margin:0 auto;
-    background-image:
-      radial-gradient(1100px 500px at 75% -10%, rgba(255,45,149,.08), transparent 60%),
-      radial-gradient(900px 500px at 10% 110%, rgba(53,224,255,.06), transparent 60%),
-      linear-gradient(rgba(120,80,255,.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(120,80,255,.045) 1px, transparent 1px);
-    background-size:auto, auto, 44px 44px, 44px 44px;
-  }
-  body::after {
-    content:""; position:fixed; inset:0; pointer-events:none; z-index:9;
-    background:repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
-  }
+  /* header */
+  header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .logo { font-size:24px; font-weight:800; letter-spacing:.04em; color:var(--accent); }
+  .tagline { color:var(--dim); font-size:14px; }
+  .account { margin-left:auto; display:flex; align-items:center; gap:10px; font-size:14px; }
+  .addr { color:var(--green-t); background:var(--green-b); border-radius:999px; padding:5px 14px; font-weight:600; }
+  .addr::before { content:"● "; font-size:11px; }
 
-  /* ── header: brand left, account right (login lives where logins live) ── */
-  header { display:flex; align-items:center; gap:18px; flex-wrap:wrap; position:relative; }
-  .brand { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
-  .wordmark {
-    font-size:34px; font-weight:700; letter-spacing:.28em;
-    color:#fff; position:relative; text-shadow:0 0 18px rgba(255,45,149,.65);
-  }
-  .wordmark::before, .wordmark::after {
-    content:attr(data-text); position:absolute; inset:0; letter-spacing:inherit; opacity:0;
-  }
-  .wordmark::before { color:var(--cyan); }
-  .wordmark::after  { color:var(--neon); }
-  @keyframes glitch-a { 0%,92%,100%{opacity:0;transform:none} 93%{opacity:.8;transform:translate(-2px,1px)} 96%{opacity:.6;transform:translate(2px,-1px)} }
-  @keyframes glitch-b { 0%,92%,100%{opacity:0;transform:none} 94%{opacity:.8;transform:translate(2px,1px)}  97%{opacity:.5;transform:translate(-2px,-1px)} }
-  .wordmark::before { animation:glitch-a 6s infinite; }
-  .wordmark::after  { animation:glitch-b 6s infinite; }
-  .sub { font-family:var(--mono); font-size:12.5px; color:var(--dim); }
-  .sub b { color:var(--cyan); font-weight:400; }
+  /* the loop explainer */
+  .loop-strip { display:flex; align-items:center; gap:8px; margin:18px 0 4px; font-size:13px; color:var(--dim); flex-wrap:wrap; }
+  .stage { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:5px 12px; }
+  .stage b { color:var(--text); font-weight:600; }
+  .stage i { font-style:normal; color:var(--accent); font-weight:700; margin-right:5px; }
+  .arrow { color:#b6bcc9; }
+  .back { color:var(--red-t); font-weight:600; }
 
-  .account { margin-left:auto; display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:12.5px; }
-  .account .addr { color:var(--mint); }
-  .account .addr::before { content:"● "; }
-  .acct-backdrop { position:fixed; inset:0; z-index:29; background:rgba(4,2,10,.72); backdrop-filter:blur(3px); }
-  .acct-panel {
-    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:min(380px, 92vw); z-index:30;
-    background:var(--panel); border:1px solid var(--neon); padding:22px;
-    box-shadow:0 0 40px rgba(255,45,149,.35);
-    clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-  }
-  .acct-backdrop[hidden], .acct-panel[hidden] { display:none; }
-  .acct-panel h3 { font-family:var(--mono); font-size:11.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--cyan); margin-bottom:6px; }
-  .gstatus { font-family:var(--mono); font-size:12px; color:var(--dim); margin-top:8px; min-height:16px; }
-  .hint { color:#6d5f96; font-size:11px; font-family:var(--mono); margin-top:10px; line-height:1.6; }
-  .hint a { color:var(--cyan); }
-
-  /* ── controls: sources | loop | clock ── */
-  .bar { display:flex; gap:20px; align-items:flex-end; flex-wrap:wrap; margin:16px 0 18px; }
+  /* controls */
+  .bar { display:flex; gap:26px; align-items:flex-end; flex-wrap:wrap; margin:16px 0 6px; }
+  .ctl-label { display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#98a0b3; margin-bottom:6px; }
   .ctl-group { display:flex; gap:8px; align-items:center; }
-  .ctl-label { font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:#6d5f96; width:100%; margin-bottom:4px; }
-  .ctl { display:flex; flex-direction:column; align-items:flex-start; }
-  .clock { margin-left:auto; }
+  .clock { margin-left:auto; text-align:right; }
+  .today { font-size:14px; font-weight:600; }
 
-  button {
-    font-family:var(--mono); font-size:12.5px; letter-spacing:.08em; text-transform:uppercase;
-    color:#fff; background:linear-gradient(180deg, rgba(255,45,149,.25), rgba(255,45,149,.1));
-    border:1px solid var(--neon); padding:8px 18px; cursor:pointer;
-    clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-    transition:box-shadow .15s, background .15s;
-  }
-  button:hover { box-shadow:0 0 16px rgba(255,45,149,.5); }
-  button.ghost { border-color:var(--line); background:transparent; color:var(--dim); }
-  button.ok { border-color:var(--mint); background:linear-gradient(180deg, rgba(69,255,196,.22), rgba(69,255,196,.08)); }
-  button.ok:hover { box-shadow:0 0 16px rgba(69,255,196,.45); }
-  button.no { border-color:var(--line); background:transparent; color:var(--dim); }
-  button.small { padding:5px 12px; font-size:11px; }
-  input[type=date] { background:var(--panel); color:var(--text); border:1px solid var(--line); padding:7px 10px; font-family:var(--mono); }
-  input[type=email], input[type=password] { width:100%; background:var(--panel-2); color:var(--text);
-    border:1px solid var(--line); padding:8px 10px; font-family:var(--mono); font-size:12.5px; margin-top:8px; }
-  input:focus-visible, button:focus-visible { outline:1px solid var(--cyan); outline-offset:2px; }
-  .today { font-family:var(--mono); color:var(--dim); font-size:11.5px; margin-top:4px; }
-  .today b { color:var(--cyan); font-weight:400; }
+  button { font:inherit; font-size:14px; font-weight:600; border-radius:8px; cursor:pointer;
+           padding:8px 16px; border:1px solid transparent; transition:filter .12s; }
+  button:hover { filter:brightness(.95); }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-quiet { background:var(--card); color:var(--text); border-color:var(--line); }
+  .btn-ok { background:var(--green-t); color:#fff; }
+  .btn-no { background:var(--card); color:var(--dim); border-color:var(--line); }
+  .btn-sm { padding:5px 12px; font-size:13px; }
+  input { font:inherit; border:1px solid var(--line); border-radius:8px; padding:9px 11px; width:100%; background:#fff; color:var(--text); }
+  input:focus-visible, button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
-  /* ── the loop, always on screen — it IS the product ── */
-  .loop-strip { display:flex; align-items:center; gap:8px; margin-top:16px; font-family:var(--mono); font-size:12px; flex-wrap:wrap; }
-  .stage { border:1px solid var(--line); background:var(--panel); padding:5px 12px; color:var(--dim);
-           clip-path:polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
-  .stage i { font-style:normal; color:var(--neon); margin-right:6px; }
-  .stage b { color:var(--text); font-weight:400; }
-  .arrow { color:#4b3f6e; }
-  .back { color:var(--red); text-shadow:0 0 10px rgba(255,59,75,.6); }
+  /* tabs */
+  .tabs { display:flex; gap:2px; border-bottom:2px solid var(--line); margin:18px 0 20px; }
+  .tab { background:none; border:none; border-radius:0; color:var(--dim); font-weight:600; padding:10px 18px;
+         border-bottom:2px solid transparent; margin-bottom:-2px; }
+  .tab.on { color:var(--accent); border-bottom-color:var(--accent); }
 
-  .grid { display:grid; grid-template-columns:1.2fr .8fr; gap:16px; align-items:start; }
-  @media (max-width: 900px){ .grid { grid-template-columns:1fr; } .clock { margin-left:0 } .account { margin-left:0 } }
+  .grid { display:grid; grid-template-columns:1.25fr .75fr; gap:18px; align-items:start; }
+  @media (max-width: 920px){ .grid { grid-template-columns:1fr; } .clock { margin-left:0; text-align:left } .account { margin-left:0 } }
 
-  .panel {
-    background:var(--panel); border:1px solid var(--line); padding:16px; position:relative;
-    clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-  }
-  .panel h2 { font-family:var(--mono); font-size:11.5px; letter-spacing:.22em; text-transform:uppercase;
-              color:var(--cyan); margin-bottom:12px; }
-  .panel h2::before { content:"◢ "; color:var(--neon); }
-  .panel h2 span { color:#6d5f96; text-transform:none; letter-spacing:.05em; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px;
+           box-shadow:0 1px 2px rgba(16,24,40,.04); }
+  .panel h2 { font-size:15px; font-weight:700; margin-bottom:4px; }
+  .panel .desc { color:var(--dim); font-size:13px; margin-bottom:14px; }
 
-  .card { border:1px solid var(--line); background:var(--panel-2); padding:14px; margin-bottom:12px;
-          transition:border-color .3s, box-shadow .3s; }
-  .card.closed { border-color:var(--mint); box-shadow:0 0 14px rgba(69,255,196,.18); }
-  .card.retry  { border-color:var(--red); animation:alert 1.1s ease-in-out infinite; }
-  @keyframes alert {
-    0%,100% { box-shadow:0 0 0 0 rgba(255,59,75,.6); transform:none; }
-    46%     { box-shadow:0 0 18px 4px rgba(255,59,75,.25); }
-    48%     { transform:translateX(-1px) skewX(-.6deg); }
-    52%     { transform:translateX(1px) skewX(.6deg); }
-    56%     { transform:none; }
-  }
+  .card { border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:12px; background:#fff; }
+  .card.retry { border-color:var(--red-t); background:#fff7f7; box-shadow:0 0 0 3px var(--red-b); }
+  .card.closed { border-color:#9fd9c3; background:#fbfffd; }
 
-  .badge { font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
-           padding:3px 10px; border:1px solid; background:transparent; }
-  .badge.open, .badge.in_progress, .badge.rejected { color:var(--dim); border-color:var(--line); }
-  .badge.awaiting_approval { color:var(--amber); border-color:var(--amber); text-shadow:0 0 8px rgba(255,179,71,.5); }
-  .badge.verifying { color:var(--cyan); border-color:var(--cyan); text-shadow:0 0 8px rgba(53,224,255,.5); }
-  .badge.retry { color:var(--red); border-color:var(--red); text-shadow:0 0 8px rgba(255,59,75,.6); }
-  .badge.closed { color:var(--mint); border-color:var(--mint); text-shadow:0 0 8px rgba(69,255,196,.5); }
+  .chip { display:inline-block; font-size:12px; font-weight:700; border-radius:999px; padding:3px 11px; }
+  .chip.open, .chip.in_progress, .chip.rejected { color:var(--gray-t); background:var(--gray-b); }
+  .chip.awaiting_approval { color:var(--amber-t); background:var(--amber-b); }
+  .chip.verifying { color:var(--blue-t); background:var(--blue-b); }
+  .chip.retry { color:#fff; background:var(--red-t); }
+  .chip.closed { color:var(--green-t); background:var(--green-b); }
 
-  /* per-commitment loop progress */
-  .stepper { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px;
-             letter-spacing:.08em; margin-top:10px; flex-wrap:wrap; }
-  .stepper span { border:1px solid var(--line); padding:2px 7px; color:#6d5f96; }
-  .stepper span.done { color:var(--mint); border-color:rgba(69,255,196,.45); }
-  .stepper span.cur  { color:var(--amber); border-color:var(--amber); }
-  .stepper span.bad  { color:var(--red); border-color:var(--red); }
-  .stepper i  { color:#4b3f6e; font-style:normal; }
-  .stepper em { color:var(--red); font-style:normal; margin-left:4px; }
-
-  .sender { display:flex; justify-content:space-between; gap:10px; border-bottom:1px solid #1c1530;
-            padding:7px 0; font-size:13px; flex-wrap:wrap; }
-  .sender .who { color:var(--text); }
-  .sender .stat { font-family:var(--mono); font-size:11.5px; color:var(--dim); }
-  .sender .stat b { color:var(--amber); font-weight:400; }
-  .sender .stat i { color:var(--mint); font-style:normal; }
-
-  .kv { color:var(--dim); font-size:13px; margin-top:6px; }
+  .promise { font-size:15px; font-weight:600; margin-top:10px; }
+  .kv { color:var(--dim); font-size:13.5px; margin-top:5px; }
   .kv b { color:var(--text); font-weight:600; }
-  .action { border:1px dashed var(--amber); background:rgba(255,179,71,.05); padding:10px 12px; margin-top:10px; font-size:14px; }
+
+  .stepper { display:flex; align-items:center; gap:6px; margin-top:12px; font-size:12px; font-weight:600; flex-wrap:wrap; }
+  .stepper span { border-radius:6px; padding:3px 9px; background:var(--gray-b); color:#98a0b3; }
+  .stepper span.done { background:var(--green-b); color:var(--green-t); }
+  .stepper span.cur  { background:var(--amber-b); color:var(--amber-t); }
+  .stepper span.bad  { background:var(--red-t); color:#fff; }
+  .stepper i { color:#b6bcc9; font-style:normal; }
+  .stepper em { color:var(--red-t); font-style:normal; margin-left:4px; }
+
+  .action { border:1px solid #f3d9a4; background:#fffaf0; border-radius:10px; padding:12px 14px; margin-top:12px; }
   .action .btns { margin-top:10px; display:flex; gap:8px; }
-  .note { color:var(--red); font-family:var(--mono); font-size:12.5px; margin-top:8px; text-shadow:0 0 8px rgba(255,59,75,.4); }
-  .done { color:var(--mint); font-family:var(--mono); font-size:12.5px; margin-top:8px; }
+  .note { color:var(--red-t); font-size:13.5px; font-weight:600; margin-top:10px; }
+  .done { color:var(--green-t); font-size:13.5px; font-weight:600; margin-top:10px; }
 
-  .log { font:12px/1.75 var(--mono); max-height:420px; overflow-y:auto; }
-  .log div { border-bottom:1px solid #1c1530; padding:4px 0; color:var(--dim); }
-  .log .a-extractor{color:var(--cyan)} .log .a-planner{color:var(--amber)} .log .a-executor{color:var(--mint)}
-  .log .a-verifier{color:#ff8da0} .log .a-user{color:#fff}
-  ul { padding-left:18px; color:var(--dim); font-size:13px; }
-  .empty { color:var(--dim); font-size:13px; font-family:var(--mono); }
-  footer { margin-top:20px; font-family:var(--mono); color:#4b3f6e; font-size:11.5px; letter-spacing:.06em; }
-  footer code { color:#6d5f96; }
+  .log { font:12.5px/1.8 ui-monospace, "SF Mono", Menlo, monospace; max-height:400px; overflow-y:auto; }
+  .log div { border-bottom:1px solid #eef0f3; padding:5px 0; color:var(--dim); }
+  .log b { font-weight:700; }
+  .a-extractor b {color:#1e50c0} .a-planner b {color:#92510a} .a-executor b {color:#0b7a55}
+  .a-verifier b {color:#b42331} .a-user b {color:#1d2433}
+  ul { padding-left:18px; color:var(--dim); font-size:13.5px; }
+  li { margin:4px 0; }
+  .empty { color:#98a0b3; font-size:13.5px; }
 
-  @media (prefers-reduced-motion: reduce) {
-    .wordmark::before, .wordmark::after { animation:none; }
-    .card.retry { animation:none; box-shadow:0 0 18px rgba(255,59,75,.35); }
+  /* sender personas */
+  .personas { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:16px; }
+  .persona { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px;
+             box-shadow:0 1px 2px rgba(16,24,40,.04); }
+  .p-head { display:flex; align-items:center; gap:12px; }
+  .avatar { width:44px; height:44px; border-radius:50%; background:var(--accent); color:#fff;
+            display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; flex:none; }
+  .p-name { font-weight:700; }
+  .p-org { color:var(--dim); font-size:13px; }
+  .p-tag { margin-top:12px; font-size:13.5px; color:var(--text); background:var(--gray-b); border-radius:8px; padding:8px 12px; }
+  .p-stats { display:flex; gap:18px; margin-top:12px; }
+  .p-stats div { text-align:center; }
+  .p-stats b { display:block; font-size:18px; }
+  .p-stats span { font-size:12px; color:var(--dim); }
+  .p-items { margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
+  .p-item { display:flex; justify-content:space-between; gap:10px; font-size:13.5px; padding:5px 0; }
+  .p-item .t { color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* gmail modal */
+  .backdrop { position:fixed; inset:0; z-index:29; background:rgba(29,36,51,.45); }
+  .modal { position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:min(400px, 92vw); z-index:30;
+           background:#fff; border-radius:14px; padding:24px; box-shadow:0 20px 50px rgba(16,24,40,.25); }
+  .backdrop[hidden], .modal[hidden] { display:none; }
+  .modal h3 { font-size:17px; margin-bottom:12px; }
+  .modal input { margin-top:10px; }
+  .gstatus { font-size:13.5px; color:var(--dim); margin-top:10px; min-height:18px; }
+  .hint { color:#98a0b3; font-size:12.5px; margin-top:12px; line-height:1.6; }
+  .hint a { color:var(--accent); }
+
+  footer { margin-top:26px; color:#98a0b3; font-size:12.5px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .card.retry { animation:nudge 1.6s ease-in-out infinite; }
+    @keyframes nudge { 0%,100% { box-shadow:0 0 0 3px var(--red-b); } 50% { box-shadow:0 0 0 6px var(--red-b); } }
   }
 </style>
 </head>
 <body>
   <header>
-    <div class="brand">
-      <div class="wordmark" data-text="LUCY">LUCY</div>
-      <div class="sub">// personal secretary daemon — she doesn't write your email, <b>she closes your loops</b></div>
-    </div>
-
+    <div class="logo">LUCY</div>
+    <div class="tagline">She doesn't write your email — she makes sure it got done.</div>
     <div class="account" id="account">
-      <button class="small" id="acctBtn" onclick="toggleAcct()">Connect Gmail</button>
+      <button class="btn-primary btn-sm" onclick="toggleAcct()">Connect Gmail</button>
     </div>
-
-    <div class="acct-backdrop" id="acctBackdrop" hidden onclick="toggleAcct()"></div>
-    <div class="acct-panel" id="acctPanel" hidden>
-      <h3>Gmail login</h3>
+    <div class="backdrop" id="acctBackdrop" hidden onclick="toggleAcct()"></div>
+    <div class="modal" id="acctPanel" hidden>
+      <h3>Connect Gmail</h3>
       <form id="gForm" onsubmit="gmailConnect(); return false;">
         <input type="email" id="gAddr" name="username" placeholder="you@gmail.com" autocomplete="username">
-        <input type="password" id="gPass" name="password" placeholder="app password (16 characters)" autocomplete="current-password">
-        <div style="display:flex; gap:8px; margin-top:10px">
-          <button class="small" type="submit">Connect</button>
-          <button class="small ghost" type="button" onclick="toggleAcct()">Close</button>
+        <input type="password" id="gPass" name="password" placeholder="App password (16 characters)" autocomplete="current-password">
+        <div style="display:flex; gap:8px; margin-top:14px">
+          <button class="btn-primary" type="submit">Connect</button>
+          <button class="btn-quiet" type="button" onclick="toggleAcct()">Cancel</button>
         </div>
       </form>
       <div class="gstatus" id="gmailStatus"></div>
-      <div class="hint">needs a Gmail <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">app password</a>
-      (2-step verification first).<br>stored locally in <code>data/gmail.json</code> — never leaves this machine. read-only: LUCY never sends from your account.</div>
+      <div class="hint">Needs a Gmail <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">app password</a> (turn on 2-step verification first).<br>
+      Stored only on this machine (<code>data/gmail.json</code>). Read-only — LUCY never sends from your account.</div>
     </div>
   </header>
 
   <div class="loop-strip">
-    <span class="stage"><i>01</i><b>EXTRACT</b> the commitment</span><span class="arrow">▸</span>
-    <span class="stage"><i>02</i><b>PLAN</b> the smallest action</span><span class="arrow">▸</span>
-    <span class="stage"><i>03</i><b>EXECUTE</b> — human approval required</span><span class="arrow">▸</span>
-    <span class="stage"><i>04</i><b>VERIFY</b> against reality</span>
-    <span class="back">↺ WRONG OUTCOME? LOOP AGAIN</span>
+    <span class="stage"><i>1</i><b>Extract</b> the commitment</span><span class="arrow">→</span>
+    <span class="stage"><i>2</i><b>Plan</b> the smallest action</span><span class="arrow">→</span>
+    <span class="stage"><i>3</i><b>Execute</b> after your approval</span><span class="arrow">→</span>
+    <span class="stage"><i>4</i><b>Verify</b> against reality</span>
+    <span class="back">↺ wrong outcome? loop again</span>
   </div>
 
   <div class="bar">
-    <div class="ctl">
-      <span class="ctl-label">inbox</span>
+    <div>
+      <span class="ctl-label">Inbox</span>
       <div class="ctl-group">
-        <button id="gmailSyncBtn" onclick="gmailSync()" hidden>Sync Gmail</button>
-        <span class="empty" id="srcHint">connect Gmail (top right) to start</span>
+        <button class="btn-primary" id="gmailSyncBtn" onclick="gmailSync()" hidden>Sync Gmail now</button>
+        <span class="empty" id="srcHint">Connect Gmail (top right) to start — new mail syncs every 10s.</span>
       </div>
     </div>
-    <div class="ctl">
-      <span class="ctl-label">loop control</span>
+    <div>
+      <span class="ctl-label">Loop</span>
       <div class="ctl-group">
-        <button id="autoBtn" onclick="toggleAuto()">Auto Loop: ON</button>
-        <button class="ghost" onclick="post('/api/tick')">Tick Once</button>
-        <button class="ghost" onclick="post('/api/reset')">Reset Demo</button>
+        <button class="btn-quiet" id="autoBtn" onclick="toggleAuto()">Auto: ON</button>
+        <button class="btn-quiet" onclick="post('/api/tick')">Step once</button>
+        <button class="btn-quiet" onclick="post('/api/reset')">Reset</button>
       </div>
     </div>
-    <div class="ctl clock">
-      <span class="ctl-label">today</span>
+    <div class="clock">
+      <span class="ctl-label">Today</span>
       <span class="today" id="todayLabel"></span>
     </div>
   </div>
 
-  <div class="grid">
+  <div class="tabs">
+    <button class="tab on" id="tab-loops" onclick="showView('loops')">Commitments</button>
+    <button class="tab" id="tab-senders" onclick="showView('senders')">Senders</button>
+  </div>
+
+  <div id="view-loops" class="grid">
     <div>
       <div class="panel">
-        <h2>Commitments <span>— what you promised, tracked to done</span></h2>
-        <div id="records" class="empty">nothing tracked yet — connect Gmail (top right); new commitments appear as mail arrives.</div>
+        <h2>Commitments</h2>
+        <div class="desc">What you promised, tracked until it's verifiably done. LUCY reads every email and keeps only real commitments.</div>
+        <div id="records" class="empty">Nothing tracked yet — connect Gmail; commitments appear as mail arrives.</div>
       </div>
-      <div class="panel" style="margin-top:16px">
-        <h2>Audit Trail <span>— which agent did what, approved by whom</span></h2>
+      <div class="panel" style="margin-top:18px">
+        <h2>Audit trail</h2>
+        <div class="desc">Every step: which agent did what, approved by whom.</div>
         <div id="log" class="log empty">—</div>
       </div>
     </div>
     <div>
       <div class="panel">
-        <h2>Senders <span>— who you owe, at a glance</span></h2>
-        <div id="senders" class="empty">no senders yet</div>
+        <h2>Calendar <span style="color:#98a0b3; font-weight:400">(mock)</span></h2>
+        <ul id="calendar"><li class="empty">empty</li></ul>
       </div>
-      <div class="panel" style="margin-top:16px"><h2>Calendar <span>// mock</span></h2><ul id="calendar"><li class="empty">empty</li></ul></div>
-      <div class="panel" style="margin-top:16px"><h2>Outbox <span>// mock sent mail</span></h2><div id="outbox" class="empty">empty</div></div>
+      <div class="panel" style="margin-top:18px">
+        <h2>Outbox <span style="color:#98a0b3; font-weight:400">(mock sent mail)</span></h2>
+        <div id="outbox" class="empty">empty</div>
+      </div>
     </div>
   </div>
 
-  <footer>local-first · state in <code>data/state.json</code> · nexla ▸ /api/ingest · pomerium guards writes · akash runs the LLM workers · zero.xyz supplies tools</footer>
+  <div id="view-senders" hidden>
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Sender profiles</h2>
+      <div class="desc">Auto-built from your commitment history: who you owe, how reliable each loop is, what's due next.</div>
+    </div>
+    <div class="personas" id="personas"></div>
+    <div class="empty" id="personasEmpty">No senders yet — profiles build themselves as commitments arrive.</div>
+  </div>
+
+  <footer>Local-first: state stays in <code>data/state.json</code> · Nexla → /api/ingest · Pomerium guards writes · Akash runs the LLM extractor · Zero.xyz supplies tools</footer>
 
 <script>
 // Email content is attacker-controlled input — escape everything before innerHTML.
@@ -270,7 +246,15 @@ async function post(url, body) {
   refresh();
 }
 
-/* ── Gmail account (top right) ── */
+/* tabs */
+function showView(v) {
+  for (const name of ['loops', 'senders']) {
+    document.getElementById('view-' + name).hidden = name !== v;
+    document.getElementById('tab-' + name).classList.toggle('on', name === v);
+  }
+}
+
+/* Gmail account */
 function toggleAcct(){
   const p = document.getElementById('acctPanel');
   const b = document.getElementById('acctBackdrop');
@@ -279,27 +263,26 @@ function toggleAcct(){
 }
 async function gmailConnect() {
   const address = document.getElementById('gAddr').value.trim();
-  // Google displays app passwords with spaces ("abcd efgh ijkl mnop") — strip them all.
   const app_password = document.getElementById('gPass').value.replace(/\s+/g, '');
   const st = document.getElementById('gmailStatus');
-  if (!address || !app_password) { st.textContent = 'enter address and app password first'; return; }
-  st.textContent = 'connecting to imap.gmail.com…';
+  if (!address || !app_password) { st.textContent = 'Enter address and app password first.'; return; }
+  st.textContent = 'Connecting to imap.gmail.com…';
   try {
     const resp = await fetch('/api/gmail', {method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({address, app_password})});
     if (!resp.ok) {
       const d = await resp.json().catch(() => ({}));
-      st.textContent = 'server error ' + resp.status + ': '
+      st.textContent = 'Server error ' + resp.status + ': '
         + (d.detail || 'endpoint missing — backend is running old code, restart uvicorn');
       return;
     }
     const r = await resp.json();
-    st.textContent = r.ok ? 'connected ✓' : r.message;
+    st.textContent = r.ok ? 'Connected ✓' : r.message;
     if (r.ok) { document.getElementById('gPass').value = ''; toggleAcct(); }
     renderAccount();
   } catch (e) {
-    st.textContent = 'request failed: ' + e.message + ' — is the server running?';
+    st.textContent = 'Request failed: ' + e.message + ' — is the server running?';
   }
 }
 async function gmailDisconnect() {
@@ -312,13 +295,13 @@ async function gmailSync() {
   try {
     const resp = await fetch('/api/gmail/sync', {method:'POST'});
     const d = await resp.json().catch(() => ({}));
-    btn.textContent = resp.ok ? `Synced: ${d.created} found` : 'Sync failed';
+    btn.textContent = resp.ok ? `Synced — ${d.created} new` : 'Sync failed';
     if (!resp.ok) alert('Gmail sync failed: ' + (d.detail || resp.status));
   } catch (e) {
     btn.textContent = 'Sync failed';
     alert('Gmail sync failed: ' + e.message);
   }
-  setTimeout(() => { btn.textContent = 'Sync Gmail'; }, 4000);
+  setTimeout(() => { btn.textContent = 'Sync Gmail now'; }, 4000);
   refresh();
 }
 let gmailOn = false;
@@ -331,73 +314,111 @@ async function renderAccount() {
   if (g.configured) document.getElementById('gAddr').value = g.address;
   acct.innerHTML = g.configured
     ? `<span class="addr">${esc(g.address)}</span>
-       <button class="small ghost" onclick="gmailDisconnect()">Disconnect</button>`
-    : `<button class="small" id="acctBtn" onclick="toggleAcct()">Connect Gmail</button>`;
+       <button class="btn-quiet btn-sm" onclick="gmailDisconnect()">Disconnect</button>`
+    : `<button class="btn-primary btn-sm" onclick="toggleAcct()">Connect Gmail</button>`;
 }
 
-/* Per-card loop progress: where this commitment sits in the 4-stage loop. */
+/* per-card loop progress */
+function loopCount(r) {
+  return r.history.filter(h => h.agent === 'verifier' && h.message.includes('FAILED')).length;
+}
 function stepper(r) {
-  const names = ['EXTRACT', 'PLAN', 'EXECUTE', 'VERIFY'];
+  const names = ['Extract', 'Plan', 'Execute', 'Verify'];
   const at = {open:1, awaiting_approval:1, rejected:1, in_progress:2, verifying:3, retry:3, closed:4}[r.status] ?? 1;
-  const loops = r.history.filter(h => h.agent === 'verifier' && h.message.includes('FAILED')).length;
+  const loops = loopCount(r);
   return '<div class="stepper">' + names.map((n, i) => {
     let cls = i < at ? 'done' : (i === at ? 'cur' : '');
     if (r.status === 'retry' && i === 3) cls = 'bad';
-    return `<span class="${cls}">${i + 1} ${n}</span>`;
-  }).join('<i>▸</i>')
+    if (r.status === 'closed') cls = 'done';
+    return `<span class="${cls}">${n}</span>`;
+  }).join('<i>→</i>')
     + (loops ? `<em>↺ looped ×${loops}</em>` : '') + '</div>';
 }
 
-/* ── main state render ── */
-async function refresh() {
-  const s = await (await fetch('/api/state')).json();
-  document.getElementById('todayLabel').innerHTML = '<b>' + esc(s.today) + '</b>';
-
-  const rec = document.getElementById('records');
-  rec.className = s.records.length ? '' : 'empty';
-  rec.innerHTML = s.records.length ? s.records.map(r => `
-    <div class="card ${r.status}">
-      <span class="badge ${r.status}">${r.status.replace('_',' ')}</span>
-      <div class="kv" style="margin-top:8px"><b>${esc(r.promise)}</b></div>
-      <div class="kv">owner <b>${esc(r.owner)}</b> · to <b>${esc(r.counterparty)}</b> · deadline <b>${esc(r.deadline)}</b></div>
-      <div class="kv">expected outcome: ${esc(r.expected_outcome)}</div>
-      ${stepper(r)}
-      ${r.verifier_note ? `<div class="note">⚠ ${esc(r.verifier_note)}</div>` : ''}
-      ${r.status === 'closed' ? `<div class="done">✓ outcome verified — loop closed</div>` : ''}
-      ${r.pending_action ? `
-        <div class="action">⟡ proposed: <b>${esc(r.pending_action.label)}</b>
-          <div class="btns">
-            <button class="ok" onclick="post('/api/approve/${r.id}')">Approve</button>
-            <button class="no" onclick="post('/api/reject/${r.id}')">Reject</button>
-          </div>
-        </div>` : ''}
-    </div>`).join('') : 'nothing tracked yet — Load Demo Email, or connect Gmail (top right) and Sync.';
-
-  const log = document.getElementById('log');
-  const lines = s.records.flatMap(r => r.history.map(h =>
-    `<div><span class="a-${esc(h.agent)}">[${esc(h.agent)}]</span> ${esc(h.message)}</div>`));
-  log.className = 'log' + (lines.length ? '' : ' empty');
-  log.innerHTML = lines.length ? lines.join('') : '—';
-  log.scrollTop = log.scrollHeight;
-
+/* sender personas */
+function renderPersonas(records) {
   const by = {};
-  s.records.forEach(r => {
+  records.forEach(r => {
     const k = r.counterparty;
-    by[k] = by[k] || {open: 0, closed: 0, next: null};
+    by[k] = by[k] || {items: [], open: 0, closed: 0, loops: 0, next: null};
+    by[k].items.push(r);
+    by[k].loops += loopCount(r);
     if (r.status === 'closed') by[k].closed++;
     else {
       by[k].open++;
       if (!by[k].next || r.deadline < by[k].next) by[k].next = r.deadline;
     }
   });
-  const senders = document.getElementById('senders');
   const keys = Object.keys(by);
-  senders.className = keys.length ? '' : 'empty';
-  senders.innerHTML = keys.length ? keys.map(k => `
-    <div class="sender">
-      <span class="who">${esc(k)}</span>
-      <span class="stat"><b>${by[k].open} open</b> · <i>${by[k].closed} closed</i>${by[k].next ? ' · next due ' + esc(by[k].next) : ''}</span>
-    </div>`).join('') : 'no senders yet';
+  document.getElementById('personasEmpty').hidden = keys.length > 0;
+  document.getElementById('personas').innerHTML = keys.map(k => {
+    const p = by[k];
+    const name = k.split('@')[0].replace(/[._]/g, ' ');
+    const org = k.includes('@') ? k.split('@')[1] : '';
+    const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const tag = p.open
+      ? `Waiting on you — next due <b>${esc(p.next)}</b>.`
+      : 'All loops with this sender are closed.';
+    const caught = p.loops ? ` LUCY caught ${p.loops} slipped outcome${p.loops > 1 ? 's' : ''} here.` : '';
+    return `
+    <div class="persona">
+      <div class="p-head">
+        <div class="avatar">${esc(initials)}</div>
+        <div>
+          <div class="p-name">${esc(name)}</div>
+          <div class="p-org">${esc(k)}${org ? ' · ' + esc(org) : ''}</div>
+        </div>
+      </div>
+      <div class="p-tag">${tag}${esc(caught)}</div>
+      <div class="p-stats">
+        <div><b>${p.open}</b><span>open</span></div>
+        <div><b>${p.closed}</b><span>closed</span></div>
+        <div><b>${p.loops}</b><span>loops caught</span></div>
+      </div>
+      <div class="p-items">
+        ${p.items.map(r => `
+          <div class="p-item">
+            <span class="t" title="${esc(r.promise)}">${esc(r.promise.slice(0, 60))}${r.promise.length > 60 ? '…' : ''}</span>
+            <span class="chip ${r.status}">${r.status.replace('_', ' ')}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* main render */
+async function refresh() {
+  const s = await (await fetch('/api/state')).json();
+  document.getElementById('todayLabel').textContent = s.today;
+
+  const rec = document.getElementById('records');
+  rec.className = s.records.length ? '' : 'empty';
+  rec.innerHTML = s.records.length ? s.records.map(r => `
+    <div class="card ${r.status}">
+      <span class="chip ${r.status}">${r.status.replace('_',' ')}</span>
+      <div class="promise">${esc(r.promise)}</div>
+      <div class="kv">To <b>${esc(r.counterparty)}</b> · deadline <b>${esc(r.deadline)}</b></div>
+      <div class="kv">Expected outcome: ${esc(r.expected_outcome)}</div>
+      ${stepper(r)}
+      ${r.verifier_note ? `<div class="note">⚠ ${esc(r.verifier_note)}</div>` : ''}
+      ${r.status === 'closed' ? `<div class="done">✓ Outcome verified — loop closed</div>` : ''}
+      ${r.pending_action ? `
+        <div class="action">LUCY proposes: <b>${esc(r.pending_action.label)}</b>
+          <div class="btns">
+            <button class="btn-ok" onclick="post('/api/approve/${r.id}')">Approve</button>
+            <button class="btn-no" onclick="post('/api/reject/${r.id}')">Reject</button>
+          </div>
+        </div>` : ''}
+    </div>`).join('') : 'Nothing tracked yet — connect Gmail; commitments appear as mail arrives.';
+
+  const log = document.getElementById('log');
+  const lines = s.records.flatMap(r => r.history.map(h =>
+    `<div class="a-${esc(h.agent)}"><b>[${esc(h.agent)}]</b> ${esc(h.message)}</div>`));
+  log.className = 'log' + (lines.length ? '' : ' empty');
+  log.innerHTML = lines.length ? lines.join('') : '—';
+  log.scrollTop = log.scrollHeight;
+
+  renderPersonas(s.records);
 
   document.getElementById('calendar').innerHTML = s.calendar.length
     ? s.calendar.map(c => `<li>${esc(c.slot)} — ${esc(c.title)}</li>`).join('')
@@ -408,21 +429,20 @@ async function refresh() {
   ob.innerHTML = s.outbox.length ? s.outbox.map(m => `
     <div class="card" style="margin-bottom:8px">
       <div class="kv"><b>${esc(m.subject)}</b> → ${esc(m.to)}</div>
-      <div class="kv">thread: ${esc(m.thread_id)} · attachments: ${m.attachments.length ? '📎 ' + esc(m.attachments.join(', ')) : '<span style="color:var(--red)">none</span>'}</div>
+      <div class="kv">Thread: ${esc(m.thread_id)} · attachments: ${m.attachments.length ? '📎 ' + esc(m.attachments.join(', ')) : '<span style="color:var(--red-t)">none</span>'}</div>
     </div>`).join('') : 'empty';
 }
 
-/* The loop drives itself; humans only approve intent. Toggle off to narrate step by step. */
+/* the loop drives itself; humans only approve intent */
 let auto = true;
 function toggleAuto(){
   auto = !auto;
-  document.getElementById('autoBtn').textContent = 'Auto Loop: ' + (auto ? 'ON' : 'OFF');
+  document.getElementById('autoBtn').textContent = 'Auto: ' + (auto ? 'ON' : 'OFF');
 }
 renderAccount();
 refresh();
 setInterval(() => { auto ? post('/api/tick') : refresh(); }, 2500);
 // While connected, pull the real inbox every 10s — new mail becomes a card hands-free.
-// Gentle enough for Gmail's IMAP limits, fast enough that a card appears mid-sentence on stage.
 setInterval(() => { if (gmailOn) fetch('/api/gmail/sync', {method:'POST'}).catch(() => {}); }, 10000);
 </script>
 </body>

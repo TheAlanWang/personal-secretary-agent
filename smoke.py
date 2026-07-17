@@ -6,6 +6,9 @@ Expected: the commitment goes open -> block time -> draft reply -> verification
 FAILS (injected missing attachment) -> retry -> resend -> closed.
 """
 import json
+import os
+
+os.environ["LLM_DISABLED"] = "1"  # the test exercises the offline rule path
 
 from app import engine, store
 
