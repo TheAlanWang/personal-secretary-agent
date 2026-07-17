@@ -32,13 +32,14 @@
       linear-gradient(90deg, rgba(120,80,255,.045) 1px, transparent 1px);
     background-size:auto, auto, 44px 44px, 44px 44px;
   }
-  /* CRT scanlines, barely-there */
   body::after {
     content:""; position:fixed; inset:0; pointer-events:none; z-index:9;
     background:repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);
   }
 
-  header { display:flex; align-items:baseline; gap:18px; flex-wrap:wrap; }
+  /* ── header: brand left, account right (login lives where logins live) ── */
+  header { display:flex; align-items:center; gap:18px; flex-wrap:wrap; position:relative; }
+  .brand { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
   .wordmark {
     font-size:34px; font-weight:700; letter-spacing:.28em;
     color:#fff; position:relative; text-shadow:0 0 18px rgba(255,45,149,.65);
@@ -55,16 +56,28 @@
   .sub { font-family:var(--mono); font-size:12.5px; color:var(--dim); }
   .sub b { color:var(--cyan); font-weight:400; }
 
-  /* the loop, always on screen — it IS the product */
-  .loop-strip { display:flex; align-items:center; gap:8px; margin:18px 0; font-family:var(--mono); font-size:12px; flex-wrap:wrap; }
-  .stage { border:1px solid var(--line); background:var(--panel); padding:5px 12px; color:var(--dim);
-           clip-path:polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
-  .stage i { font-style:normal; color:var(--neon); margin-right:6px; }
-  .stage b { color:var(--text); font-weight:400; }
-  .arrow { color:#4b3f6e; }
-  .back { color:var(--red); text-shadow:0 0 10px rgba(255,59,75,.6); }
+  .account { margin-left:auto; display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:12.5px; }
+  .account .addr { color:var(--mint); }
+  .account .addr::before { content:"● "; }
+  .acct-panel {
+    position:absolute; right:0; top:calc(100% + 10px); width:320px; z-index:30;
+    background:var(--panel); border:1px solid var(--neon); padding:16px;
+    box-shadow:0 0 24px rgba(255,45,149,.25);
+    clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  }
+  .acct-panel[hidden] { display:none; }
+  .acct-panel h3 { font-family:var(--mono); font-size:11.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--cyan); margin-bottom:6px; }
+  .gstatus { font-family:var(--mono); font-size:12px; color:var(--dim); margin-top:8px; min-height:16px; }
+  .hint { color:#6d5f96; font-size:11px; font-family:var(--mono); margin-top:10px; line-height:1.6; }
+  .hint a { color:var(--cyan); }
 
-  .bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+  /* ── controls: sources | loop | clock ── */
+  .bar { display:flex; gap:20px; align-items:flex-end; flex-wrap:wrap; margin:16px 0 18px; }
+  .ctl-group { display:flex; gap:8px; align-items:center; }
+  .ctl-label { font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:#6d5f96; width:100%; margin-bottom:4px; }
+  .ctl { display:flex; flex-direction:column; align-items:flex-start; }
+  .clock { margin-left:auto; }
+
   button {
     font-family:var(--mono); font-size:12.5px; letter-spacing:.08em; text-transform:uppercase;
     color:#fff; background:linear-gradient(180deg, rgba(255,45,149,.25), rgba(255,45,149,.1));
@@ -77,18 +90,25 @@
   button.ok { border-color:var(--mint); background:linear-gradient(180deg, rgba(69,255,196,.22), rgba(69,255,196,.08)); }
   button.ok:hover { box-shadow:0 0 16px rgba(69,255,196,.45); }
   button.no { border-color:var(--line); background:transparent; color:var(--dim); }
+  button.small { padding:5px 12px; font-size:11px; }
   input[type=date] { background:var(--panel); color:var(--text); border:1px solid var(--line); padding:7px 10px; font-family:var(--mono); }
   input[type=email], input[type=password] { width:100%; background:var(--panel-2); color:var(--text);
     border:1px solid var(--line); padding:8px 10px; font-family:var(--mono); font-size:12.5px; margin-top:8px; }
   input:focus-visible, button:focus-visible { outline:1px solid var(--cyan); outline-offset:2px; }
-  .gstatus { font-family:var(--mono); font-size:12px; color:var(--dim); margin-top:4px; }
-  .gstatus b { color:var(--mint); font-weight:400; }
-  .hint { color:#4b3f6e; font-size:11.5px; font-family:var(--mono); margin-top:8px; line-height:1.6; }
-  .today { font-family:var(--mono); color:var(--dim); font-size:12px; margin-left:auto; }
+  .today { font-family:var(--mono); color:var(--dim); font-size:11.5px; margin-top:4px; }
   .today b { color:var(--cyan); font-weight:400; }
 
+  /* ── the loop, always on screen — it IS the product ── */
+  .loop-strip { display:flex; align-items:center; gap:8px; margin-top:16px; font-family:var(--mono); font-size:12px; flex-wrap:wrap; }
+  .stage { border:1px solid var(--line); background:var(--panel); padding:5px 12px; color:var(--dim);
+           clip-path:polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+  .stage i { font-style:normal; color:var(--neon); margin-right:6px; }
+  .stage b { color:var(--text); font-weight:400; }
+  .arrow { color:#4b3f6e; }
+  .back { color:var(--red); text-shadow:0 0 10px rgba(255,59,75,.6); }
+
   .grid { display:grid; grid-template-columns:1.2fr .8fr; gap:16px; align-items:start; }
-  @media (max-width: 900px){ .grid { grid-template-columns:1fr; } }
+  @media (max-width: 900px){ .grid { grid-template-columns:1fr; } .clock { margin-left:0 } .account { margin-left:0 } }
 
   .panel {
     background:var(--panel); border:1px solid var(--line); padding:16px; position:relative;
@@ -97,6 +117,7 @@
   .panel h2 { font-family:var(--mono); font-size:11.5px; letter-spacing:.22em; text-transform:uppercase;
               color:var(--cyan); margin-bottom:12px; }
   .panel h2::before { content:"◢ "; color:var(--neon); }
+  .panel h2 span { color:#6d5f96; text-transform:none; letter-spacing:.05em; }
 
   .card { border:1px solid var(--line); background:var(--panel-2); padding:14px; margin-bottom:12px;
           transition:border-color .3s, box-shadow .3s; }
@@ -142,8 +163,27 @@
 </head>
 <body>
   <header>
-    <div class="wordmark" data-text="LUCY">LUCY</div>
-    <div class="sub">// personal secretary daemon — she doesn't write your email, <b>she closes your loops</b></div>
+    <div class="brand">
+      <div class="wordmark" data-text="LUCY">LUCY</div>
+      <div class="sub">// personal secretary daemon — she doesn't write your email, <b>she closes your loops</b></div>
+    </div>
+
+    <div class="account" id="account">
+      <button class="small" id="acctBtn" onclick="toggleAcct()">Connect Gmail</button>
+    </div>
+
+    <div class="acct-panel" id="acctPanel" hidden>
+      <h3>Gmail login</h3>
+      <input type="email" id="gAddr" placeholder="you@gmail.com" autocomplete="off">
+      <input type="password" id="gPass" placeholder="app password (16 characters)" autocomplete="off">
+      <div style="display:flex; gap:8px; margin-top:10px">
+        <button class="small" onclick="gmailConnect()">Connect</button>
+        <button class="small ghost" onclick="toggleAcct()">Close</button>
+      </div>
+      <div class="gstatus" id="gmailStatus"></div>
+      <div class="hint">needs a Gmail <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">app password</a>
+      (2-step verification first).<br>stored locally in <code>data/gmail.json</code> — never leaves this machine. read-only: LUCY never sends from your account.</div>
+    </div>
   </header>
 
   <div class="loop-strip">
@@ -155,45 +195,48 @@
   </div>
 
   <div class="bar">
-    <button onclick="post('/api/sync')">Sync Inbox</button>
-    <button id="autoBtn" onclick="toggleAuto()">Auto Loop: ON</button>
-    <button class="ghost" onclick="post('/api/tick')">Tick Once</button>
-    <button class="ghost" onclick="post('/api/reset')">Reset Demo</button>
-    <input type="date" id="day" onchange="setToday(this.value)">
-    <span class="today" id="todayLabel"></span>
+    <div class="ctl">
+      <span class="ctl-label">inbox source</span>
+      <div class="ctl-group">
+        <button onclick="post('/api/sync')">Load Demo Email</button>
+        <button id="gmailSyncBtn" onclick="gmailSync()" hidden>Sync Gmail</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span class="ctl-label">loop control</span>
+      <div class="ctl-group">
+        <button id="autoBtn" onclick="toggleAuto()">Auto Loop: ON</button>
+        <button class="ghost" onclick="post('/api/tick')">Tick Once</button>
+        <button class="ghost" onclick="post('/api/reset')">Reset Demo</button>
+      </div>
+    </div>
+    <div class="ctl clock">
+      <span class="ctl-label">simulated clock</span>
+      <div class="ctl-group">
+        <input type="date" id="day" onchange="setToday(this.value)">
+      </div>
+      <span class="today" id="todayLabel"></span>
+    </div>
   </div>
 
   <div class="grid">
     <div>
       <div class="panel">
-        <h2>Commitments</h2>
-        <div id="records" class="empty">no commitments tracked — hit Sync Inbox.</div>
+        <h2>Commitments <span>— what you promised, tracked to done</span></h2>
+        <div id="records" class="empty">nothing tracked yet — Load Demo Email, or connect Gmail (top right) and Sync.</div>
       </div>
       <div class="panel" style="margin-top:16px">
-        <h2>Audit Trail — which agent did what, approved by whom</h2>
+        <h2>Audit Trail <span>— which agent did what, approved by whom</span></h2>
         <div id="log" class="log empty">—</div>
       </div>
     </div>
     <div>
-      <div class="panel"><h2>Calendar // mock</h2><ul id="calendar"><li class="empty">empty</li></ul></div>
-      <div class="panel" style="margin-top:16px"><h2>Outbox // mock sent mail</h2><div id="outbox" class="empty">empty</div></div>
-      <div class="panel" style="margin-top:16px">
-        <h2>Gmail // connection</h2>
-        <div class="gstatus" id="gmailStatus">not connected — demo runs on the mock inbox</div>
-        <input type="email" id="gAddr" placeholder="you@gmail.com" autocomplete="off">
-        <input type="password" id="gPass" placeholder="app password (16 characters)" autocomplete="off">
-        <div style="display:flex; gap:8px; margin-top:10px">
-          <button onclick="gmailConnect()">Connect</button>
-          <button class="ghost" onclick="gmailSync()">Sync Gmail</button>
-          <button class="no" onclick="gmailDisconnect()">Disconnect</button>
-        </div>
-        <div class="hint">gmail: 2-step verification → app passwords → paste here.<br>
-        stored locally in <code>data/gmail.json</code> (gitignored) — never leaves this machine.</div>
-      </div>
+      <div class="panel"><h2>Calendar <span>// mock</span></h2><ul id="calendar"><li class="empty">empty</li></ul></div>
+      <div class="panel" style="margin-top:16px"><h2>Outbox <span>// mock sent mail</span></h2><div id="outbox" class="empty">empty</div></div>
     </div>
   </div>
 
-  <footer>local-first · state in <code>data/state.json</code> · nexla ▸ /api/ingest · pomerium guards writes · akash runs the LLM workers</footer>
+  <footer>local-first · state in <code>data/state.json</code> · nexla ▸ /api/ingest · pomerium guards writes · akash runs the LLM workers · zero.xyz supplies tools</footer>
 
 <script>
 // Email content is attacker-controlled input — escape everything before innerHTML.
@@ -206,9 +249,51 @@ async function post(url, body) {
 }
 function setToday(v){ if(v) post('/api/today', {date:v}); }
 
+/* ── Gmail account (top right) ── */
+function toggleAcct(){
+  const p = document.getElementById('acctPanel');
+  p.hidden = !p.hidden;
+}
+async function gmailConnect() {
+  const address = document.getElementById('gAddr').value.trim();
+  const app_password = document.getElementById('gPass').value.trim();
+  const st = document.getElementById('gmailStatus');
+  if (!address || !app_password) { st.textContent = 'enter address and app password first'; return; }
+  st.textContent = 'connecting to imap.gmail.com…';
+  const r = await (await fetch('/api/gmail', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({address, app_password})})).json();
+  st.textContent = r.ok ? 'connected ✓' : r.message;
+  if (r.ok) { document.getElementById('gPass').value = ''; document.getElementById('acctPanel').hidden = true; }
+  renderAccount();
+}
+async function gmailDisconnect() {
+  await fetch('/api/gmail', {method:'DELETE'});
+  renderAccount();
+}
+async function gmailSync() {
+  const btn = document.getElementById('gmailSyncBtn');
+  btn.textContent = 'Syncing…';
+  const resp = await fetch('/api/gmail/sync', {method:'POST'});
+  const d = await resp.json();
+  btn.textContent = resp.ok ? `Synced: ${d.created} found` : 'Sync failed';
+  setTimeout(() => { btn.textContent = 'Sync Gmail'; }, 4000);
+  refresh();
+}
+async function renderAccount() {
+  const g = await (await fetch('/api/gmail')).json();
+  const acct = document.getElementById('account');
+  document.getElementById('gmailSyncBtn').hidden = !g.configured;
+  acct.innerHTML = g.configured
+    ? `<span class="addr">${esc(g.address)}</span>
+       <button class="small ghost" onclick="gmailDisconnect()">Disconnect</button>`
+    : `<button class="small" id="acctBtn" onclick="toggleAcct()">Connect Gmail</button>`;
+}
+
+/* ── main state render ── */
 async function refresh() {
   const s = await (await fetch('/api/state')).json();
-  document.getElementById('todayLabel').innerHTML = 'simulated today: <b>' + esc(s.today) + '</b>';
+  document.getElementById('todayLabel').innerHTML = 'today: <b>' + esc(s.today) + '</b>';
   document.getElementById('day').value = s.today;
 
   const rec = document.getElementById('records');
@@ -228,7 +313,7 @@ async function refresh() {
             <button class="no" onclick="post('/api/reject/${r.id}')">Reject</button>
           </div>
         </div>` : ''}
-    </div>`).join('') : 'no commitments tracked — hit Sync Inbox.';
+    </div>`).join('') : 'nothing tracked yet — Load Demo Email, or connect Gmail (top right) and Sync.';
 
   const log = document.getElementById('log');
   const lines = s.records.flatMap(r => r.history.map(h =>
@@ -249,43 +334,14 @@ async function refresh() {
       <div class="kv">thread: ${esc(m.thread_id)} · attachments: ${m.attachments.length ? '📎 ' + esc(m.attachments.join(', ')) : '<span style="color:var(--red)">none</span>'}</div>
     </div>`).join('') : 'empty';
 }
-async function gmailConnect() {
-  const address = document.getElementById('gAddr').value.trim();
-  const app_password = document.getElementById('gPass').value.trim();
-  const st = document.getElementById('gmailStatus');
-  if (!address || !app_password) { st.textContent = 'enter address and app password first'; return; }
-  st.textContent = 'connecting to imap.gmail.com…';
-  const r = await (await fetch('/api/gmail', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({address, app_password})})).json();
-  st.innerHTML = r.ok ? 'connected: <b>' + esc(address) + '</b>' : esc(r.message);
-  if (r.ok) document.getElementById('gPass').value = '';
-}
-async function gmailSync() {
-  const st = document.getElementById('gmailStatus');
-  st.textContent = 'fetching inbox…';
-  const resp = await fetch('/api/gmail/sync', {method:'POST'});
-  const d = await resp.json();
-  st.innerHTML = resp.ok
-    ? 'synced: <b>' + d.fetched + ' fetched, ' + d.created + ' commitment(s) found</b>'
-    : esc(d.detail || 'sync failed');
-  refresh();
-}
-async function gmailDisconnect() {
-  await fetch('/api/gmail', {method:'DELETE'});
-  document.getElementById('gmailStatus').textContent = 'not connected — demo runs on the mock inbox';
-}
-(async () => {
-  const g = await (await fetch('/api/gmail')).json();
-  if (g.configured) document.getElementById('gmailStatus').innerHTML = 'connected: <b>' + esc(g.address) + '</b>';
-})();
 
-// The loop drives itself; humans only approve intent. Toggle off to narrate step by step.
+/* The loop drives itself; humans only approve intent. Toggle off to narrate step by step. */
 let auto = true;
 function toggleAuto(){
   auto = !auto;
   document.getElementById('autoBtn').textContent = 'Auto Loop: ' + (auto ? 'ON' : 'OFF');
 }
+renderAccount();
 refresh();
 setInterval(() => { auto ? post('/api/tick') : refresh(); }, 2500);
 </script>
