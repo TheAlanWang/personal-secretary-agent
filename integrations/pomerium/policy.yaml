@@ -1,0 +1,37 @@
+# Pomerium policy — per-agent least privilege for CPOS Loop.
+# Status: designed. In production Pomerium proxies the app; each agent calls
+# through Pomerium with its own service identity, so "the extractor can never
+# send email" is enforced by the proxy, not by good intentions in code.
+
+routes:
+  # Read paths: extractor/planner/verifier may look, never touch.
+  - from: https://cpos.local
+    to: http://localhost:8000
+    prefix: /api/state
+    policy:
+      - allow:
+          or:
+            - claim/agent: extractor
+            - claim/agent: planner
+            - claim/agent: verifier
+            - claim/agent: executor
+
+  # Ingest webhook: only the Nexla flow identity may deliver data.
+  - from: https://cpos.local
+    to: http://localhost:8000
+    prefix: /api/ingest
+    policy:
+      - allow:
+          and:
+            - claim/source: nexla-flow
+
+  # DANGEROUS write path: only the executor, and only for requests carrying a
+  # human approval — every send is auditable in Pomerium's access log.
+  - from: https://cpos.local
+    to: http://localhost:8000
+    prefix: /api/approve
+    policy:
+      - allow:
+          and:
+            - claim/agent: executor
+            - claim/approved_by: user

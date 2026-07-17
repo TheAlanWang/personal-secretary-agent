@@ -1,0 +1,42 @@
+"""Agent ③ Executor — carries out an approved action. It only ever runs after
+the user clicks Approve (the Pomerium gate in production, see
+integrations/pomerium/policy.yaml).
+
+Sending is mocked: "sent" email goes to state["outbox"], calendar holds go to
+state["calendar"]. `inject_failure` is the demo trap: the first send silently
+drops the attachment so the Verifier has something real to catch.
+"""
+from .. import models, store
+
+
+def execute(state, record):
+    action = record["pending_action"]
+    record["pending_action"] = None
+
+    if action["type"] == models.ACTION_BLOCK_TIME:
+        for slot in action["slots"]:
+            state["calendar"].append({"commitment": record["id"], "slot": slot,
+                                      "title": "Write Phase 1 report"})
+        record["time_blocked"] = True
+        record["status"] = models.STATUS_IN_PROGRESS
+        models.log(record, "executor", "Calendar holds created: %s" % ", ".join(action["slots"]))
+        return
+
+    if action["type"] == models.ACTION_DRAFT_REPLY:
+        attachments = [store.REPORT_PATH]
+        if state["inject_failure"] and not action.get("force_attachment"):
+            attachments = []          # oops — the very bug CPOS exists to catch
+            state["inject_failure"] = False
+        state["outbox"].append({
+            "thread_id": record["source_thread"],
+            "in_reply_to": record["thread_message_id"],
+            "to": record["counterparty"],
+            "subject": "Re: " + record["subject"],
+            "body": "Dear Professor,\n\nPlease find the Phase 1 report attached, "
+                    "submitted in this thread as agreed.\n\nBest regards",
+            "attachments": attachments,
+        })
+        record["status"] = models.STATUS_VERIFYING
+        models.log(record, "executor",
+                   "Reply sent in thread '%s' (%d attachment(s))"
+                   % (record["subject"], len(attachments)))

@@ -49,10 +49,9 @@ CPOS Loop extracts this commitment from the thread, blocks writing time on the c
 │  │        ▲                        │            │         │
 │  │        └──── ④ Verifier ◄───────┘  (loop)    │         │
 │  └──────────────────────────────────────────────┘        │
-│        │                    │                            │
-│  [ POMERIUM ]         [ ZERO.XYZ ]                       │
-│  per-agent authZ,     extra tools on demand              │
-│  approval gates       (token-gated tool calls)           │
+│        │                                                 │
+│  [ POMERIUM ]                                            │
+│  per-agent authZ, approval gates, audit log              │
 └────────┼─────────────────────────────────────────────────┘
          ▼
    [ AKASH ]  private stateless LLM inference workers (GPU)
@@ -87,10 +86,6 @@ All agent inference runs as **stateless workers on Akash**; agent state (commitm
 - Stateless by design: workers receive minimal prompts, return structured output, retain nothing — consistent with local-first privacy.
 - Token-metered compute keeps cost transparent per loop iteration.
 
-### Zero.xyz — Token / Extra Tools
-- Provides **on-demand extra tools** when the Planner needs a capability outside the core set (e.g., document conversion, link resolution, enrichment).
-- Tool calls are token-gated: the Planner spends tokens only when a tool measurably advances a commitment, making tool usage accountable.
-
 ## 7. Core Data Model
 
 ```json
@@ -117,7 +112,7 @@ CommitmentRecord {
 
 ## 9. MVP Scope (Hackathon)
 
-**In scope:** one email account, the demo scenario end-to-end, all four agents, all four sponsor integrations, CLI/simple web UI, approval prompt.
+**In scope:** one email account, the demo scenario end-to-end, all four agents, all three sponsor integrations (Nexla, Pomerium, Akash), CLI/simple web UI, approval prompt.
 **Out of scope:** multi-user, mobile, non-email channels, automatic sending without approval, fine-tuned models.
 
 ## 10. Success Criteria (Demo)
@@ -126,4 +121,4 @@ CommitmentRecord {
 - [ ] Calendar block proposed and created only after approval.
 - [ ] Reply drafted **in the same thread** with attachment.
 - [ ] Verifier catches an injected failure (missing attachment) and re-plans — the "loop" moment.
-- [ ] Pomerium audit log shows per-agent permissions; Akash dashboard shows stateless inference; Nexla shows the normalization pipeline; Zero.xyz shows a token-gated tool call.
+- [ ] Pomerium audit log shows per-agent permissions; Akash dashboard shows stateless inference; Nexla shows the normalization pipeline.

@@ -1,0 +1,50 @@
+# Akash SDL — private stateless LLM inference worker for CPOS agents.
+# Status: designed. The app is already wired: set LLM_BASE_URL to the lease URI
+# and all four agents switch from rule-based fallback to LLM inference.
+# Workers are stateless by design: minimal prompt in, structured JSON out,
+# nothing retained — commitments and history stay on the user's machine.
+---
+version: "2.0"
+
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    args:
+      - --model
+      - Qwen/Qwen2.5-7B-Instruct
+      - --max-model-len
+      - "8192"
+    expose:
+      - port: 8000
+        as: 80
+        to:
+          - global: true
+
+profiles:
+  compute:
+    vllm:
+      resources:
+        cpu:
+          units: 4
+        memory:
+          size: 24Gi
+        storage:
+          size: 40Gi
+        gpu:
+          units: 1
+          attributes:
+            vendor:
+              nvidia:
+                - model: rtx4090
+  placement:
+    dcloud:
+      pricing:
+        vllm:
+          denom: uakt
+          amount: 10000
+
+deployment:
+  vllm:
+    dcloud:
+      profile: vllm
+      count: 1

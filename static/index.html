@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CPOS Loop — Personal Secretary</title>
+<style>
+  :root { --bg:#0f1217; --panel:#171c24; --line:#2a3140; --text:#e8ebf0; --dim:#8b93a3; --accent:#5b9dff; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--text); font:15px/1.5 -apple-system,"Segoe UI",sans-serif; padding:24px; }
+  h1 { font-size:20px; letter-spacing:.3px; }
+  h1 span { color:var(--accent); }
+  .sub { color:var(--dim); font-size:13px; margin:2px 0 18px; }
+  .bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:8px 16px; font-size:14px; cursor:pointer; }
+  button.ghost { background:transparent; border:1px solid var(--line); color:var(--dim); }
+  button.ok { background:#2ea36b; } button.no { background:#3a4152; }
+  input[type=date] { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
+  .today { color:var(--dim); font-size:13px; margin-left:auto; }
+  .grid { display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; align-items:start; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--dim); margin-bottom:12px; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px; }
+  .card.retry { border-color:#e05555; box-shadow:0 0 0 1px #e05555; }
+  .card.closed { border-color:#2ea36b; }
+  .badge { display:inline-block; font-size:11px; font-weight:600; letter-spacing:.5px; padding:2px 9px; border-radius:99px; background:#3a4152; }
+  .badge.awaiting_approval { background:#8a6d1f; } .badge.verifying { background:#3f5f9e; }
+  .badge.retry { background:#a33030; } .badge.closed { background:#2ea36b; } .badge.in_progress { background:#4a5568; }
+  .kv { color:var(--dim); font-size:13px; margin-top:6px; }
+  .kv b { color:var(--text); font-weight:600; }
+  .action { background:#20293a; border-radius:8px; padding:10px 12px; margin-top:10px; font-size:14px; }
+  .action .btns { margin-top:8px; display:flex; gap:8px; }
+  .note { color:#ff8a8a; font-size:13px; margin-top:8px; }
+  .log { font:12px/1.7 ui-monospace,Menlo,monospace; max-height:420px; overflow-y:auto; }
+  .log div { border-bottom:1px solid var(--line); padding:4px 0; color:var(--dim); }
+  .log .a-extractor{color:#8fd3ff} .log .a-planner{color:#ffd479} .log .a-executor{color:#b7f4c0}
+  .log .a-verifier{color:#ff9e9e} .log .a-user{color:#e8ebf0}
+  ul { padding-left:18px; color:var(--dim); font-size:13px; }
+  .empty { color:var(--dim); font-size:13px; }
+</style>
+</head>
+<body>
+  <h1>CPOS <span>Loop</span></h1>
+  <div class="sub">Commitment · Person · Outcome · Schedule — it doesn't write your email, it closes your loops.</div>
+
+  <div class="bar">
+    <button onclick="post('/api/sync')">Sync Inbox</button>
+    <button onclick="post('/api/tick')">Tick</button>
+    <button class="ghost" onclick="post('/api/reset')">Reset Demo</button>
+    <input type="date" id="day" onchange="setToday(this.value)">
+    <span class="today" id="todayLabel"></span>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2>Commitments</h2>
+        <div id="records" class="empty">No commitments yet — hit Sync Inbox.</div>
+      </div>
+      <div class="panel" style="margin-top:16px">
+        <h2>Audit Trail (which agent did what, approved by whom)</h2>
+        <div id="log" class="log empty">—</div>
+      </div>
+    </div>
+    <div>
+      <div class="panel"><h2>📅 Calendar (mock)</h2><ul id="calendar"><li class="empty">empty</li></ul></div>
+      <div class="panel" style="margin-top:16px"><h2>📤 Outbox (mock sent mail)</h2><div id="outbox" class="empty">empty</div></div>
+    </div>
+  </div>
+
+<script>
+async function post(url, body) {
+  await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+                    body: body ? JSON.stringify(body) : null});
+  refresh();
+}
+function setToday(v){ if(v) post('/api/today', {date:v}); }
+
+async function refresh() {
+  const s = await (await fetch('/api/state')).json();
+  document.getElementById('todayLabel').textContent = 'simulated today: ' + s.today;
+  document.getElementById('day').value = s.today;
+
+  const rec = document.getElementById('records');
+  rec.className = s.records.length ? '' : 'empty';
+  rec.innerHTML = s.records.length ? s.records.map(r => `
+    <div class="card ${r.status}">
+      <span class="badge ${r.status}">${r.status.replace('_',' ')}</span>
+      <div class="kv" style="margin-top:8px"><b>${r.promise}</b></div>
+      <div class="kv">owner <b>${r.owner}</b> · to <b>${r.counterparty}</b> · deadline <b>${r.deadline}</b></div>
+      <div class="kv">expected outcome: ${r.expected_outcome}</div>
+      ${r.verifier_note ? `<div class="note">⚠ ${r.verifier_note}</div>` : ''}
+      ${r.pending_action ? `
+        <div class="action">🤖 Proposed: <b>${r.pending_action.label}</b>
+          <div class="btns">
+            <button class="ok" onclick="post('/api/approve/${r.id}')">Approve</button>
+            <button class="no" onclick="post('/api/reject/${r.id}')">Reject</button>
+          </div>
+        </div>` : ''}
+    </div>`).join('') : 'No commitments yet — hit Sync Inbox.';
+
+  const log = document.getElementById('log');
+  const lines = s.records.flatMap(r => r.history.map(h =>
+    `<div><span class="a-${h.agent}">[${h.agent}]</span> ${h.message}</div>`));
+  log.className = 'log' + (lines.length ? '' : ' empty');
+  log.innerHTML = lines.length ? lines.join('') : '—';
+  log.scrollTop = log.scrollHeight;
+
+  document.getElementById('calendar').innerHTML = s.calendar.length
+    ? s.calendar.map(c => `<li>${c.slot} — ${c.title}</li>`).join('')
+    : '<li class="empty">empty</li>';
+
+  const ob = document.getElementById('outbox');
+  ob.className = s.outbox.length ? '' : 'empty';
+  ob.innerHTML = s.outbox.length ? s.outbox.map(m => `
+    <div class="card" style="margin-bottom:8px">
+      <div class="kv"><b>${m.subject}</b> → ${m.to}</div>
+      <div class="kv">thread: ${m.thread_id} · attachments: ${m.attachments.length ? '📎 ' + m.attachments.join(', ') : '<span style="color:#ff8a8a">none</span>'}</div>
+    </div>`).join('') : 'empty';
+}
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
