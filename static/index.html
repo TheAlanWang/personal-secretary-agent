@@ -267,12 +267,23 @@ async function gmailConnect() {
   const st = document.getElementById('gmailStatus');
   if (!address || !app_password) { st.textContent = 'enter address and app password first'; return; }
   st.textContent = 'connecting to imap.gmail.com…';
-  const r = await (await fetch('/api/gmail', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({address, app_password})})).json();
-  st.textContent = r.ok ? 'connected ✓' : r.message;
-  if (r.ok) { document.getElementById('gPass').value = ''; document.getElementById('acctPanel').hidden = true; }
-  renderAccount();
+  try {
+    const resp = await fetch('/api/gmail', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({address, app_password})});
+    if (!resp.ok) {
+      const d = await resp.json().catch(() => ({}));
+      st.textContent = 'server error ' + resp.status + ': '
+        + (d.detail || 'endpoint missing — backend is running old code, restart uvicorn');
+      return;
+    }
+    const r = await resp.json();
+    st.textContent = r.ok ? 'connected ✓' : r.message;
+    if (r.ok) { document.getElementById('gPass').value = ''; toggleAcct(); }
+    renderAccount();
+  } catch (e) {
+    st.textContent = 'request failed: ' + e.message + ' — is the server running?';
+  }
 }
 async function gmailDisconnect() {
   await fetch('/api/gmail', {method:'DELETE'});
@@ -281,9 +292,15 @@ async function gmailDisconnect() {
 async function gmailSync() {
   const btn = document.getElementById('gmailSyncBtn');
   btn.textContent = 'Syncing…';
-  const resp = await fetch('/api/gmail/sync', {method:'POST'});
-  const d = await resp.json();
-  btn.textContent = resp.ok ? `Synced: ${d.created} found` : 'Sync failed';
+  try {
+    const resp = await fetch('/api/gmail/sync', {method:'POST'});
+    const d = await resp.json().catch(() => ({}));
+    btn.textContent = resp.ok ? `Synced: ${d.created} found` : 'Sync failed';
+    if (!resp.ok) alert('Gmail sync failed: ' + (d.detail || resp.status));
+  } catch (e) {
+    btn.textContent = 'Sync failed';
+    alert('Gmail sync failed: ' + e.message);
+  }
   setTimeout(() => { btn.textContent = 'Sync Gmail'; }, 4000);
   refresh();
 }
