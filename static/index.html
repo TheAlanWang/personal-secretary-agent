@@ -3,44 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <title>CPOS Loop — Personal Secretary</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🔁</text></svg>">
 <style>
-  :root { --bg:#0f1217; --panel:#171c24; --line:#2a3140; --text:#e8ebf0; --dim:#8b93a3; --accent:#5b9dff; }
+  :root { --bg:#0f1217; --panel:#171c24; --line:#2a3140; --text:#e8ebf0; --dim:#8b93a3;
+          --accent:#5b9dff; --ok:#2ea36b; --bad:#e05555; --warn:#c9972e; }
   * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--text); font:15px/1.5 -apple-system,"Segoe UI",sans-serif; padding:24px; }
-  h1 { font-size:20px; letter-spacing:.3px; }
+  body { background:var(--bg); color:var(--text); font:15px/1.5 -apple-system,"Segoe UI",sans-serif; padding:24px; max-width:1280px; margin:0 auto; }
+
+  header { display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; }
+  h1 { font-size:22px; letter-spacing:.3px; }
   h1 span { color:var(--accent); }
-  .sub { color:var(--dim); font-size:13px; margin:2px 0 18px; }
+  .sub { color:var(--dim); font-size:13px; }
+
+  /* the loop, always visible: extract -> plan -> execute -> verify -> (back) */
+  .loop-strip { display:flex; align-items:center; gap:6px; margin:14px 0 18px; font-size:12.5px; color:var(--dim); flex-wrap:wrap; }
+  .loop-strip .stage { border:1px solid var(--line); border-radius:99px; padding:4px 12px; background:var(--panel); }
+  .loop-strip .stage b { color:var(--text); font-weight:600; }
+  .loop-strip .arrow { color:#4a5568; }
+  .loop-strip .back { color:var(--bad); font-weight:600; }
+
   .bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
-  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:8px 16px; font-size:14px; cursor:pointer; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:8px 16px; font-size:14px; cursor:pointer; transition:filter .15s; }
+  button:hover { filter:brightness(1.12); }
   button.ghost { background:transparent; border:1px solid var(--line); color:var(--dim); }
-  button.ok { background:#2ea36b; } button.no { background:#3a4152; }
+  button.ok { background:var(--ok); } button.no { background:#3a4152; }
   input[type=date] { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:7px 10px; }
   .today { color:var(--dim); font-size:13px; margin-left:auto; }
+
   .grid { display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; align-items:start; }
+  @media (max-width: 900px){ .grid { grid-template-columns:1fr; } }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
   .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--dim); margin-bottom:12px; }
-  .card { border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px; }
-  .card.retry { border-color:#e05555; box-shadow:0 0 0 1px #e05555; }
-  .card.closed { border-color:#2ea36b; }
+
+  .card { border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px; transition:border-color .3s, box-shadow .3s; }
+  .card.closed { border-color:var(--ok); }
+  .card.retry { border-color:var(--bad); animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(224,85,85,.55); }
+    50%     { box-shadow:0 0 0 7px rgba(224,85,85,0); }
+  }
+
   .badge { display:inline-block; font-size:11px; font-weight:600; letter-spacing:.5px; padding:2px 9px; border-radius:99px; background:#3a4152; }
-  .badge.awaiting_approval { background:#8a6d1f; } .badge.verifying { background:#3f5f9e; }
-  .badge.retry { background:#a33030; } .badge.closed { background:#2ea36b; } .badge.in_progress { background:#4a5568; }
+  .badge.awaiting_approval { background:var(--warn); } .badge.verifying { background:#3f5f9e; }
+  .badge.retry { background:#a33030; } .badge.closed { background:var(--ok); } .badge.in_progress { background:#4a5568; }
+
   .kv { color:var(--dim); font-size:13px; margin-top:6px; }
   .kv b { color:var(--text); font-weight:600; }
   .action { background:#20293a; border-radius:8px; padding:10px 12px; margin-top:10px; font-size:14px; }
   .action .btns { margin-top:8px; display:flex; gap:8px; }
-  .note { color:#ff8a8a; font-size:13px; margin-top:8px; }
+  .note { color:#ff8a8a; font-size:13px; margin-top:8px; font-weight:600; }
+  .done { color:#7fe0ac; font-size:13px; margin-top:8px; font-weight:600; }
+
   .log { font:12px/1.7 ui-monospace,Menlo,monospace; max-height:420px; overflow-y:auto; }
   .log div { border-bottom:1px solid var(--line); padding:4px 0; color:var(--dim); }
   .log .a-extractor{color:#8fd3ff} .log .a-planner{color:#ffd479} .log .a-executor{color:#b7f4c0}
-  .log .a-verifier{color:#ff9e9e} .log .a-user{color:#e8ebf0}
+  .log .a-verifier{color:#ff9e9e} .log .a-user{color:#e8ebf0; font-weight:600}
   ul { padding-left:18px; color:var(--dim); font-size:13px; }
   .empty { color:var(--dim); font-size:13px; }
+  footer { margin-top:18px; color:#4a5568; font-size:12px; }
 </style>
 </head>
 <body>
-  <h1>CPOS <span>Loop</span></h1>
-  <div class="sub">Commitment · Person · Outcome · Schedule — it doesn't write your email, it closes your loops.</div>
+  <header>
+    <h1>CPOS <span>Loop</span></h1>
+    <div class="sub">It doesn't write your email — it closes your loops.</div>
+  </header>
+
+  <div class="loop-strip">
+    <span class="stage">① <b>Extractor</b> finds the commitment</span><span class="arrow">→</span>
+    <span class="stage">② <b>Planner</b> picks the smallest action</span><span class="arrow">→</span>
+    <span class="stage">③ <b>Executor</b> acts <em>after your approval</em></span><span class="arrow">→</span>
+    <span class="stage">④ <b>Verifier</b> checks reality</span>
+    <span class="back">↺ wrong outcome? loop again</span>
+  </div>
 
   <div class="bar">
     <button onclick="post('/api/sync')">Sync Inbox</button>
@@ -57,7 +92,7 @@
         <div id="records" class="empty">No commitments yet — hit Sync Inbox.</div>
       </div>
       <div class="panel" style="margin-top:16px">
-        <h2>Audit Trail (which agent did what, approved by whom)</h2>
+        <h2>Audit Trail — which agent did what, approved by whom</h2>
         <div id="log" class="log empty">—</div>
       </div>
     </div>
@@ -67,7 +102,12 @@
     </div>
   </div>
 
+  <footer>local-first · data in <code>data/state.json</code> · Nexla → /api/ingest · Pomerium guards writes · Akash runs the LLM workers</footer>
+
 <script>
+// Email content is attacker-controlled input — escape everything before innerHTML.
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
 async function post(url, body) {
   await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
                     body: body ? JSON.stringify(body) : null});
@@ -85,12 +125,13 @@ async function refresh() {
   rec.innerHTML = s.records.length ? s.records.map(r => `
     <div class="card ${r.status}">
       <span class="badge ${r.status}">${r.status.replace('_',' ')}</span>
-      <div class="kv" style="margin-top:8px"><b>${r.promise}</b></div>
-      <div class="kv">owner <b>${r.owner}</b> · to <b>${r.counterparty}</b> · deadline <b>${r.deadline}</b></div>
-      <div class="kv">expected outcome: ${r.expected_outcome}</div>
-      ${r.verifier_note ? `<div class="note">⚠ ${r.verifier_note}</div>` : ''}
+      <div class="kv" style="margin-top:8px"><b>${esc(r.promise)}</b></div>
+      <div class="kv">owner <b>${esc(r.owner)}</b> · to <b>${esc(r.counterparty)}</b> · deadline <b>${esc(r.deadline)}</b></div>
+      <div class="kv">expected outcome: ${esc(r.expected_outcome)}</div>
+      ${r.verifier_note ? `<div class="note">⚠ ${esc(r.verifier_note)}</div>` : ''}
+      ${r.status === 'closed' ? `<div class="done">✓ outcome verified — loop closed</div>` : ''}
       ${r.pending_action ? `
-        <div class="action">🤖 Proposed: <b>${r.pending_action.label}</b>
+        <div class="action">🤖 Proposed: <b>${esc(r.pending_action.label)}</b>
           <div class="btns">
             <button class="ok" onclick="post('/api/approve/${r.id}')">Approve</button>
             <button class="no" onclick="post('/api/reject/${r.id}')">Reject</button>
@@ -100,21 +141,21 @@ async function refresh() {
 
   const log = document.getElementById('log');
   const lines = s.records.flatMap(r => r.history.map(h =>
-    `<div><span class="a-${h.agent}">[${h.agent}]</span> ${h.message}</div>`));
+    `<div><span class="a-${esc(h.agent)}">[${esc(h.agent)}]</span> ${esc(h.message)}</div>`));
   log.className = 'log' + (lines.length ? '' : ' empty');
   log.innerHTML = lines.length ? lines.join('') : '—';
   log.scrollTop = log.scrollHeight;
 
   document.getElementById('calendar').innerHTML = s.calendar.length
-    ? s.calendar.map(c => `<li>${c.slot} — ${c.title}</li>`).join('')
+    ? s.calendar.map(c => `<li>${esc(c.slot)} — ${esc(c.title)}</li>`).join('')
     : '<li class="empty">empty</li>';
 
   const ob = document.getElementById('outbox');
   ob.className = s.outbox.length ? '' : 'empty';
   ob.innerHTML = s.outbox.length ? s.outbox.map(m => `
     <div class="card" style="margin-bottom:8px">
-      <div class="kv"><b>${m.subject}</b> → ${m.to}</div>
-      <div class="kv">thread: ${m.thread_id} · attachments: ${m.attachments.length ? '📎 ' + m.attachments.join(', ') : '<span style="color:#ff8a8a">none</span>'}</div>
+      <div class="kv"><b>${esc(m.subject)}</b> → ${esc(m.to)}</div>
+      <div class="kv">thread: ${esc(m.thread_id)} · attachments: ${m.attachments.length ? '📎 ' + esc(m.attachments.join(', ')) : '<span style="color:#ff8a8a">none</span>'}</div>
     </div>`).join('') : 'empty';
 }
 refresh();

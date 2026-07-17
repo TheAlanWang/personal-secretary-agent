@@ -5,7 +5,7 @@ Open: http://localhost:8000
 """
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -39,9 +39,20 @@ def sync():
 
 
 @app.post("/api/ingest")
-def ingest(email: dict):
+def ingest(email: dict, x_ingest_token: str = Header(default="")):
     """Webhook destination for the Nexla flow (integrations/nexla/README.md):
-    receives one normalized email and runs the extractor on it."""
+    receives one normalized email and runs the extractor on it.
+
+    When exposed beyond localhost, set INGEST_TOKEN and configure the same
+    secret on the Nexla destination (in production Pomerium fronts this route).
+    """
+    expected = os.environ.get("INGEST_TOKEN")
+    if expected and x_ingest_token != expected:
+        raise HTTPException(status_code=401, detail="invalid ingest token")
+    required = {"message_id", "thread_id", "from", "to", "subject", "body"}
+    missing = required - email.keys()
+    if missing:
+        raise HTTPException(status_code=422, detail="missing fields: %s" % sorted(missing))
     state = store.load_state()
     created = engine.ingest_email(state, email)
     store.save_state(state)
