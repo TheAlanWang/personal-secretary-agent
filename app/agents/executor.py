@@ -6,7 +6,7 @@ Sending is mocked: "sent" email goes to state["outbox"], calendar holds go to
 state["calendar"]. `inject_failure` is the demo trap: the first send silently
 drops the attachment so the Verifier has something real to catch.
 """
-from .. import models, store
+from .. import models, tools
 
 
 def execute(state, record):
@@ -23,7 +23,8 @@ def execute(state, record):
         return
 
     if action["type"] == models.ACTION_DRAFT_REPLY:
-        attachments = [store.REPORT_PATH]
+        # Attachment lookup goes through the tool registry (Zero.xyz seam).
+        attachments = [tools.call("find_attachment", record["promise"])]
         if state["inject_failure"] and not action.get("force_attachment"):
             attachments = []          # oops — the very bug CPOS exists to catch
             state["inject_failure"] = False

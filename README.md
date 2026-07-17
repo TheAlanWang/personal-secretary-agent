@@ -63,6 +63,7 @@ Credentials stay in `data/gmail.json` on your machine (gitignored).
 | **Nexla** | ingests + normalizes email; delivers to our live `/api/ingest` webhook | `integrations/nexla/README.md` |
 | **Pomerium** | per-agent least privilege; sending requires a human-approved request | `integrations/pomerium/policy.yaml` |
 | **Akash** | private stateless LLM workers; `export LLM_BASE_URL=...` switches all agents from rules to LLM | `integrations/akash/deploy.yaml`, `app/llm.py` |
+| **Zero.xyz** | token-gated extra tools; the executor's attachment lookup already routes through the tool registry | `integrations/zero/README.md`, `app/tools.py` |
 
 ## Team workflow (hackathon)
 
