@@ -140,6 +140,23 @@
   .badge.retry { color:var(--red); border-color:var(--red); text-shadow:0 0 8px rgba(255,59,75,.6); }
   .badge.closed { color:var(--mint); border-color:var(--mint); text-shadow:0 0 8px rgba(69,255,196,.5); }
 
+  /* per-commitment loop progress */
+  .stepper { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px;
+             letter-spacing:.08em; margin-top:10px; flex-wrap:wrap; }
+  .stepper span { border:1px solid var(--line); padding:2px 7px; color:#6d5f96; }
+  .stepper span.done { color:var(--mint); border-color:rgba(69,255,196,.45); }
+  .stepper span.cur  { color:var(--amber); border-color:var(--amber); }
+  .stepper span.bad  { color:var(--red); border-color:var(--red); }
+  .stepper i  { color:#4b3f6e; font-style:normal; }
+  .stepper em { color:var(--red); font-style:normal; margin-left:4px; }
+
+  .sender { display:flex; justify-content:space-between; gap:10px; border-bottom:1px solid #1c1530;
+            padding:7px 0; font-size:13px; flex-wrap:wrap; }
+  .sender .who { color:var(--text); }
+  .sender .stat { font-family:var(--mono); font-size:11.5px; color:var(--dim); }
+  .sender .stat b { color:var(--amber); font-weight:400; }
+  .sender .stat i { color:var(--mint); font-style:normal; }
+
   .kv { color:var(--dim); font-size:13px; margin-top:6px; }
   .kv b { color:var(--text); font-weight:600; }
   .action { border:1px dashed var(--amber); background:rgba(255,179,71,.05); padding:10px 12px; margin-top:10px; font-size:14px; }
@@ -215,10 +232,7 @@
       </div>
     </div>
     <div class="ctl clock">
-      <span class="ctl-label">simulated clock</span>
-      <div class="ctl-group">
-        <input type="date" id="day" onchange="setToday(this.value)">
-      </div>
+      <span class="ctl-label">today</span>
       <span class="today" id="todayLabel"></span>
     </div>
   </div>
@@ -235,7 +249,11 @@
       </div>
     </div>
     <div>
-      <div class="panel"><h2>Calendar <span>// mock</span></h2><ul id="calendar"><li class="empty">empty</li></ul></div>
+      <div class="panel">
+        <h2>Senders <span>— who you owe, at a glance</span></h2>
+        <div id="senders" class="empty">no senders yet</div>
+      </div>
+      <div class="panel" style="margin-top:16px"><h2>Calendar <span>// mock</span></h2><ul id="calendar"><li class="empty">empty</li></ul></div>
       <div class="panel" style="margin-top:16px"><h2>Outbox <span>// mock sent mail</span></h2><div id="outbox" class="empty">empty</div></div>
     </div>
   </div>
@@ -251,7 +269,6 @@ async function post(url, body) {
                     body: body ? JSON.stringify(body) : null});
   refresh();
 }
-function setToday(v){ if(v) post('/api/today', {date:v}); }
 
 /* ── Gmail account (top right) ── */
 function toggleAcct(){
@@ -318,11 +335,23 @@ async function renderAccount() {
     : `<button class="small" id="acctBtn" onclick="toggleAcct()">Connect Gmail</button>`;
 }
 
+/* Per-card loop progress: where this commitment sits in the 4-stage loop. */
+function stepper(r) {
+  const names = ['EXTRACT', 'PLAN', 'EXECUTE', 'VERIFY'];
+  const at = {open:1, awaiting_approval:1, rejected:1, in_progress:2, verifying:3, retry:3, closed:4}[r.status] ?? 1;
+  const loops = r.history.filter(h => h.agent === 'verifier' && h.message.includes('FAILED')).length;
+  return '<div class="stepper">' + names.map((n, i) => {
+    let cls = i < at ? 'done' : (i === at ? 'cur' : '');
+    if (r.status === 'retry' && i === 3) cls = 'bad';
+    return `<span class="${cls}">${i + 1} ${n}</span>`;
+  }).join('<i>▸</i>')
+    + (loops ? `<em>↺ looped ×${loops}</em>` : '') + '</div>';
+}
+
 /* ── main state render ── */
 async function refresh() {
   const s = await (await fetch('/api/state')).json();
-  document.getElementById('todayLabel').innerHTML = 'today: <b>' + esc(s.today) + '</b>';
-  document.getElementById('day').value = s.today;
+  document.getElementById('todayLabel').innerHTML = '<b>' + esc(s.today) + '</b>';
 
   const rec = document.getElementById('records');
   rec.className = s.records.length ? '' : 'empty';
@@ -332,6 +361,7 @@ async function refresh() {
       <div class="kv" style="margin-top:8px"><b>${esc(r.promise)}</b></div>
       <div class="kv">owner <b>${esc(r.owner)}</b> · to <b>${esc(r.counterparty)}</b> · deadline <b>${esc(r.deadline)}</b></div>
       <div class="kv">expected outcome: ${esc(r.expected_outcome)}</div>
+      ${stepper(r)}
       ${r.verifier_note ? `<div class="note">⚠ ${esc(r.verifier_note)}</div>` : ''}
       ${r.status === 'closed' ? `<div class="done">✓ outcome verified — loop closed</div>` : ''}
       ${r.pending_action ? `
@@ -349,6 +379,25 @@ async function refresh() {
   log.className = 'log' + (lines.length ? '' : ' empty');
   log.innerHTML = lines.length ? lines.join('') : '—';
   log.scrollTop = log.scrollHeight;
+
+  const by = {};
+  s.records.forEach(r => {
+    const k = r.counterparty;
+    by[k] = by[k] || {open: 0, closed: 0, next: null};
+    if (r.status === 'closed') by[k].closed++;
+    else {
+      by[k].open++;
+      if (!by[k].next || r.deadline < by[k].next) by[k].next = r.deadline;
+    }
+  });
+  const senders = document.getElementById('senders');
+  const keys = Object.keys(by);
+  senders.className = keys.length ? '' : 'empty';
+  senders.innerHTML = keys.length ? keys.map(k => `
+    <div class="sender">
+      <span class="who">${esc(k)}</span>
+      <span class="stat"><b>${by[k].open} open</b> · <i>${by[k].closed} closed</i>${by[k].next ? ' · next due ' + esc(by[k].next) : ''}</span>
+    </div>`).join('') : 'no senders yet';
 
   document.getElementById('calendar').innerHTML = s.calendar.length
     ? s.calendar.map(c => `<li>${esc(c.slot)} — ${esc(c.title)}</li>`).join('')
@@ -372,8 +421,9 @@ function toggleAuto(){
 renderAccount();
 refresh();
 setInterval(() => { auto ? post('/api/tick') : refresh(); }, 2500);
-// While connected, pull the real inbox every 30s — new mail becomes a card hands-free.
-setInterval(() => { if (gmailOn) fetch('/api/gmail/sync', {method:'POST'}).catch(() => {}); }, 30000);
+// While connected, pull the real inbox — new mail becomes a card hands-free.
+// 5s is for testing only; set back to 30000 before the stage demo (Gmail throttles hot IMAP polling).
+setInterval(() => { if (gmailOn) fetch('/api/gmail/sync', {method:'POST'}).catch(() => {}); }, 5000);
 </script>
 </body>
 </html>

@@ -35,19 +35,19 @@ Credentials stay in `data/gmail.json` on your machine (gitignored).
 
 ## Demo script (~2 min)
 
-1. Connect Gmail (top right), have "the professor" send the ask — within 30s
-   (or on **Sync Gmail**) the extractor turns the real email into a commitment
-   card: *submit Phase 1 report, deadline 2026-07-23, in the same thread*.
-   (Offline fallback: `curl -X POST localhost:8010/api/sync` loads the demo email.)
-2. The loop proposes *block 2 writing sessions* → **Approve** → calendar holds
-   appear.
-3. Set the simulated date to **2026-07-22** → the loop switches to *draft the
-   submission reply with the report attached* → **Approve** → sent.
-4. **The Loop 🔁 (hands off the keyboard)**: the verifier discovers the
+1. Connect Gmail (top right), have "the professor" send the ask **with a
+   deadline in the next 2 days** — within seconds the extractor turns the real
+   email into a commitment card. (Offline fallback:
+   `curl -X POST localhost:8010/api/sync` loads a demo email.)
+2. The clock is real: with a near deadline the loop goes straight to *draft
+   the submission reply with the report attached* → **Approve** → sent. (A
+   farther deadline gets *block writing sessions* first — the planner always
+   picks the smallest useful action.)
+3. **The Loop 🔁 (hands off the keyboard)**: the verifier discovers the
    attachment is missing → card pulses red (`retry`) → the repair inherits your
    original approval, resends WITH the attachment, verifies — card turns green
    (`closed`) with no further clicks.
-5. The audit trail shows exactly which agent did what, approved by whom.
+4. The audit trail shows exactly which agent did what, approved by whom.
 
 ## The four agents (`app/agents/`)
 

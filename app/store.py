@@ -1,6 +1,7 @@
 """Local-first state store: everything lives in data/state.json on the user's machine."""
 import json
 import os
+from datetime import date
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 STATE_PATH = os.path.join(DATA_DIR, "state.json")
@@ -8,7 +9,7 @@ SAMPLE_EMAILS_PATH = os.path.join(DATA_DIR, "sample_emails.json")
 REPORT_PATH = "data/phase1_report.pdf"
 
 DEFAULT_STATE = {
-    "today": "2026-07-17",      # simulated clock so the demo can fast-forward
+    "today": None,               # always overwritten with the real date on load
     "inject_failure": True,      # demo trap: first send silently drops the attachment
     "next_id": 1,
     "records": [],
@@ -19,9 +20,12 @@ DEFAULT_STATE = {
 
 def load_state():
     if not os.path.exists(STATE_PATH):
-        return json.loads(json.dumps(DEFAULT_STATE))
-    with open(STATE_PATH) as f:
-        return json.load(f)
+        state = json.loads(json.dumps(DEFAULT_STATE))
+    else:
+        with open(STATE_PATH) as f:
+            state = json.load(f)
+    state["today"] = date.today().isoformat()  # production behavior: the real clock
+    return state
 
 
 def save_state(state):
@@ -32,6 +36,7 @@ def save_state(state):
 
 def reset_state():
     state = json.loads(json.dumps(DEFAULT_STATE))
+    state["today"] = date.today().isoformat()
     save_state(state)
     return state
 

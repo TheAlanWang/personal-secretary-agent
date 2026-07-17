@@ -16,10 +16,6 @@ app = FastAPI(title="CPOS Loop")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
 
 
-class TodayBody(BaseModel):
-    date: str
-
-
 class GmailBody(BaseModel):
     address: str
     app_password: str
@@ -93,14 +89,6 @@ def reject(rec_id: str):
     engine.reject(state, rec_id)
     store.save_state(state)
     return {"ok": True}
-
-
-@app.post("/api/today")
-def set_today(body: TodayBody):
-    state = store.load_state()
-    state["today"] = body.date
-    store.save_state(state)
-    return {"today": state["today"]}
 
 
 @app.post("/api/reset")

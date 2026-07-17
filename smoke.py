@@ -5,6 +5,8 @@
 Expected: the commitment goes open -> block time -> draft reply -> verification
 FAILS (injected missing attachment) -> retry -> resend -> closed.
 """
+import json
+
 from app import engine, store
 
 
@@ -15,11 +17,13 @@ def step(state, label):
 
 
 def main():
-    state = store.reset_state()
+    # in-memory copy: the test never touches data/state.json (the live demo's state)
+    state = json.loads(json.dumps(store.DEFAULT_STATE))
+    state["today"] = "2026-07-10"                     # pinned so the test is deterministic
 
     assert engine.sync(state) == 1, "extractor should find exactly 1 commitment"
     rec = step(state, "1. sync inbox")
-    assert rec["deadline"] == "2026-07-23", rec["deadline"]
+    assert rec["deadline"] == "2026-07-18", rec["deadline"]
 
     engine.tick(state)
     rec = step(state, "2. tick -> planner proposes")
@@ -29,9 +33,9 @@ def main():
     rec = step(state, "3. approve -> calendar blocked")
     assert rec["time_blocked"] and len(state["calendar"]) == 2
 
-    state["today"] = "2026-07-22"                     # fast-forward to near deadline
+    state["today"] = "2026-07-17"                     # near deadline: planner switches gear
     engine.tick(state)
-    rec = step(state, "4. day 07-22, tick -> draft reply")
+    rec = step(state, "4. near deadline, tick -> draft reply")
     assert rec["pending_action"]["type"] == "draft_reply"
 
     engine.approve(state, rec["id"])
@@ -52,7 +56,6 @@ def main():
     rec = step(state, "8. tick -> verified, loop closed")
     assert rec["status"] == "closed"
 
-    store.save_state(state)
     print("\nSMOKE PASS — full CPOS loop including one retry. Audit trail:")
     for h in rec["history"]:
         print("  [%-9s] %s" % (h["agent"], h["message"]))

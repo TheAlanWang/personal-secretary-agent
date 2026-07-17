@@ -29,11 +29,11 @@
    expected outcome: report in this same thread."
    *(Wi-Fi dies? `curl -X POST localhost:8010/api/sync` loads the identical
    demo email — rehearse both.)*
-2. **Approve** — "Deadline's six days out, so the planner doesn't write
-   anything yet. Smallest useful action: block two writing sessions. I approve;
-   they're on my calendar. Notice I never drive the loop — it ticks itself."
-3. **Fast-forward to July 22 → Approve** — "Now it drafts the submission
-   reply — same thread, report attached. I approve. Sent."
+2. **Approve** — "The deadline is tomorrow — real clock, no tricks — so the
+   planner goes straight to the smallest useful action: draft the submission
+   reply, same thread, report attached. Were the deadline a week out, it would
+   block writing time on my calendar instead. I approve. Sent. Notice I never
+   drive the loop — it ticks itself."
 4. **THE MOMENT — hands off the keyboard** *(card pulses red)* — "But look:
    the verifier checked the sent mail and the attachment is **missing**. Any
    other assistant would have called this done. Watch — LUCY reopens the loop,
