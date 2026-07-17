@@ -16,6 +16,7 @@
     --disp:'Chakra Petch', -apple-system, sans-serif;
   }
   * { box-sizing:border-box; margin:0; }
+  [hidden] { display:none !important; }  /* beat display:grid/flex on hidden views */
   body {
     background:var(--bg); color:var(--text); font:15px/1.6 var(--disp);
     padding:26px 22px 40px; max-width:1280px; margin:0 auto;
