@@ -256,9 +256,14 @@
   <div id="view-loops" class="grid">
     <div>
       <div class="panel">
-        <h2>Mailbox <span style="color:var(--faint)">— every message, nothing hidden</span></h2>
-        <div class="desc">All mail LUCY has read. Rows with a colored tag carry a task; the rest were judged and set aside.</div>
-        <div id="mailbox" class="empty">no mail scanned yet — connect Gmail (top right)</div>
+        <h2 style="cursor:pointer; user-select:none" onclick="toggleMailbox()">Mailbox
+          <span id="mbCount" style="color:var(--faint)"></span>
+          <span id="mbChevron" style="float:right; color:var(--cyan)">▾</span>
+        </h2>
+        <div id="mbBody">
+          <div class="desc">All mail LUCY has read, newest first. Rows with a colored tag carry a task; the rest were judged and set aside.</div>
+          <div id="mailbox" class="empty">no mail scanned yet — connect Gmail (top right)</div>
+        </div>
       </div>
       <div class="panel" style="margin-top:18px">
         <h2>Tasks in the loop</h2>
@@ -327,6 +332,19 @@ async function post(url, body) {
                     body: body ? JSON.stringify(body) : null});
   refresh();
 }
+
+/* mailbox collapse */
+let mbOpen = localStorage.getItem('mbOpen') !== '0';
+function applyMailbox() {
+  document.getElementById('mbBody').hidden = !mbOpen;
+  document.getElementById('mbChevron').textContent = mbOpen ? '▾' : '▸';
+}
+function toggleMailbox() {
+  mbOpen = !mbOpen;
+  localStorage.setItem('mbOpen', mbOpen ? '1' : '0');
+  applyMailbox();
+}
+applyMailbox();
 
 /* tabs */
 function showView(v) {
@@ -572,6 +590,7 @@ async function refresh() {
   const scans = Object.values(s.scanned || {})
     .map(e => ({...e, ts: Date.parse(e.date || '') || 0}))
     .sort((a, b) => b.ts - a.ts);           // newest first; undated sink to the bottom
+  document.getElementById('mbCount').textContent = scans.length ? '· ' + scans.length + ' messages' : '';
   mb.className = scans.length ? '' : 'empty';
   mb.innerHTML = scans.length ? scans.map(e => {
     let tag, dim = '';
