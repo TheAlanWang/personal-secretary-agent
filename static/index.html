@@ -421,9 +421,9 @@ function toggleAuto(){
 renderAccount();
 refresh();
 setInterval(() => { auto ? post('/api/tick') : refresh(); }, 2500);
-// While connected, pull the real inbox — new mail becomes a card hands-free.
-// 5s is for testing only; set back to 30000 before the stage demo (Gmail throttles hot IMAP polling).
-setInterval(() => { if (gmailOn) fetch('/api/gmail/sync', {method:'POST'}).catch(() => {}); }, 5000);
+// While connected, pull the real inbox every 10s — new mail becomes a card hands-free.
+// Gentle enough for Gmail's IMAP limits, fast enough that a card appears mid-sentence on stage.
+setInterval(() => { if (gmailOn) fetch('/api/gmail/sync', {method:'POST'}).catch(() => {}); }, 10000);
 </script>
 </body>
 </html>
