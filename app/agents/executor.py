@@ -16,7 +16,7 @@ def execute(state, record):
     if action["type"] == models.ACTION_BLOCK_TIME:
         for slot in action["slots"]:
             state["calendar"].append({"commitment": record["id"], "slot": slot,
-                                      "title": "Write Phase 1 report"})
+                                      "title": "Work on: %s" % record["promise"][:48]})
         record["time_blocked"] = True
         record["status"] = models.STATUS_IN_PROGRESS
         models.log(record, "executor", "Calendar holds created: %s" % ", ".join(action["slots"]))
@@ -33,8 +33,9 @@ def execute(state, record):
             "in_reply_to": record["thread_message_id"],
             "to": record["counterparty"],
             "subject": "Re: " + record["subject"],
-            "body": "Dear Professor,\n\nPlease find the Phase 1 report attached, "
-                    "submitted in this thread as agreed.\n\nBest regards",
+            "body": "Hi,\n\nFollowing up in this thread as promised: %s\n\n"
+                    "Please find the relevant file attached.\n\nBest regards"
+                    % record["promise"][:200],
             "attachments": attachments,
         })
         record["status"] = models.STATUS_VERIFYING

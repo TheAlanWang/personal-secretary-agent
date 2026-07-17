@@ -17,7 +17,7 @@ def choose_next_action(record, today_iso):
     if record["status"] == models.STATUS_RETRY:
         return {
             "type": models.ACTION_DRAFT_REPLY,
-            "label": "Resend reply in the same thread WITH the report attached",
+            "label": "Resend the reply in the same thread with the attachment included",
             "force_attachment": True,
         }
 
@@ -26,14 +26,14 @@ def choose_next_action(record, today_iso):
     if not record["time_blocked"] and days_left > DRAFT_THRESHOLD_DAYS:
         return {
             "type": models.ACTION_BLOCK_TIME,
-            "label": "Block 2 writing sessions on the calendar before the deadline",
+            "label": "Block 2 focus sessions before the %s deadline" % record["deadline"],
             "slots": ["%s 09:00-11:00" % today_iso, "focus session before %s" % record["deadline"]],
         }
 
     if days_left <= DRAFT_THRESHOLD_DAYS:
         return {
             "type": models.ACTION_DRAFT_REPLY,
-            "label": "Draft the submission reply in the same thread with the report attached",
+            "label": "Draft a reply in this thread delivering: %s" % record["expected_outcome"],
             "force_attachment": False,
         }
 
