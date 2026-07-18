@@ -23,8 +23,10 @@ def config():
     if os.environ.get("LLM_DISABLED"):
         return None
     if os.environ.get("LLM_BASE_URL"):
+        fallbacks = [m.strip() for m in os.environ.get("LLM_FALLBACK_MODELS", "").split(",") if m.strip()]
         return {"base_url": os.environ["LLM_BASE_URL"],
                 "model": os.environ.get("LLM_MODEL", "default"),
+                "fallback_models": fallbacks,
                 "api_key": os.environ.get("LLM_API_KEY", "none")}
     if os.path.exists(LLM_CONFIG_PATH):
         with open(LLM_CONFIG_PATH) as f:
@@ -46,18 +48,30 @@ def _ssl_contexts():
 
 
 def complete_json(system_prompt, user_prompt):
+    """Try the primary model, then each fallback model, then give up (caller
+    falls back to rules). A bad/empty response from one model moves on to the
+    next instead of failing the whole judgment."""
     cfg = config()
     if not cfg:
         return None
-    body = json.dumps({
-        "model": cfg.get("model", "default"),
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        "temperature": 0,
-        "max_tokens": 400,
-    }).encode()
+    models = [cfg.get("model", "default")] + list(cfg.get("fallback_models", []))
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+    for model in models:
+        content = _chat(cfg, model, messages)
+        if content is None:
+            continue
+        parsed = _parse_json(content)
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _chat(cfg, model, messages):
+    body = json.dumps({"model": model, "messages": messages,
+                       "temperature": 0, "max_tokens": 400}).encode()
     url = cfg["base_url"].rstrip("/") + "/chat/completions"
     headers = {"Content-Type": "application/json",
                "Authorization": "Bearer " + cfg.get("api_key", "none")}
@@ -65,11 +79,10 @@ def complete_json(system_prompt, user_prompt):
         req = urllib.request.Request(url, data=body, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=60, context=ctx) as resp:
-                content = json.load(resp)["choices"][0]["message"]["content"]
-            return _parse_json(content)
+                return json.load(resp)["choices"][0]["message"]["content"]
         except urllib.error.URLError as exc:
             if "CERTIFICATE" in str(exc).upper():
-                continue  # try the next, more permissive SSL context
+                continue  # try the next CA bundle
             return None
         except Exception:
             return None
