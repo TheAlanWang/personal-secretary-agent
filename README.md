@@ -38,7 +38,8 @@ Credentials stay in `data/gmail.json` on your machine (gitignored).
 1. Connect Gmail (top right), have "the professor" send the ask **with a
    deadline in the next 2 days** — within seconds the extractor turns the real
    email into a commitment card. (Offline fallback:
-   `curl -X POST localhost:8010/api/sync` loads a demo email.)
+   `curl -X POST localhost:8010/api/sync` loads a demo email — refused while
+   Gmail is connected, so sample data never mixes into live data.)
 2. The clock is real: with a near deadline the loop goes straight to *draft
    the submission reply with the report attached* → **Approve** → sent. (A
    farther deadline gets *block writing sessions* first — the planner always

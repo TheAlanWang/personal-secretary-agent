@@ -33,11 +33,17 @@ def get_state():
 
 
 @app.post("/api/sync")
-def sync():
+def sync(force: bool = False):
+    """Demo-data loader — strictly a fallback. Refuses to run while a real
+    Gmail account is connected, so sample mail can never mix into live data."""
+    if gmail.load_config() and not force:
+        raise HTTPException(status_code=409,
+                            detail="Gmail is connected — demo data is fallback-only "
+                                   "(pass ?force=true to override)")
     state = store.load_state()
     created = engine.sync(state)
     store.save_state(state)
-    return {"created": created}
+    return {"created": created, "source": "demo-fallback"}
 
 
 @app.post("/api/ingest")
